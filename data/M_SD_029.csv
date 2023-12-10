@@ -1,6 +1,5 @@
-"","Juniperus phoenicea","Osyris quadripartita","Corema album","Phillyrea angustifolia"
-"Turdus merula",1,1,1,1
-"Turdus iliacus",1,1,0,0
-"Turdus philomelos",1,1,0,0
-"Turdus torquatus",1,0,0,0
-"Turdus viscivorus",1,0,0,0
+"","Turdus iliacus","Turdus merula","Turdus philomelos","Turdus torquatus","Turdus viscivorus"
+"Corema album",0,1,0,0,0
+"Juniperus phoenicea",1,1,1,1,1
+"Osyris quadripartita",1,1,1,0,0
+"Phillyrea angustifolia",0,1,0,0,0

@@ -1,18 +1,17 @@
-"","Pistacia lentiscus","Rubus ulmifolius","Rhamnus lycioides","Phillyrea angustifolia","Myrtus communis","Olea europaea","Daphne gnidium","Smilax aspera","Asparagus aphyllus","Asparagus aculeatus","Lonicera periclymenum","Osyris alba","Crataegus monogyna","Tamus communis","Pyrus bourgaeana","Rubia pregrina"
-"Sylvia atricapilla",1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1
-"Turdus merula",1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1
-"Sylvia borin",1,1,1,1,0,1,1,1,1,1,1,1,0,1,0,1
-"Sylvia melanocephala",1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0
-"Erithacus rubecula",1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0
-"Cyanopica cyanus",1,1,1,1,1,1,0,0,0,0,0,0,1,1,1,0
-"Sylvia cantillans",1,1,1,1,1,0,1,0,0,0,1,0,0,0,0,0
-"Turdus philomelos",1,0,0,1,1,1,0,0,1,0,0,1,0,0,0,0
-"Ficedula hypoleuca",1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,0
-"Sylvia communis",1,1,1,1,0,0,1,0,0,0,0,0,0,0,0,0
-"Phoenicurus phoenicurus",1,1,1,0,0,0,1,0,0,0,0,0,0,0,0,0
-"Sturnus unicolor",1,0,0,0,1,1,0,0,0,0,0,0,1,0,0,0
-"Sylvia hortensis",1,1,0,1,0,0,0,1,0,0,0,0,0,0,0,0
-"Luscinia megarhynchos",1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-"Muscicapa striata",1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0
-"Saxicola torquata",1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0
-"Sylvia undata",1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0
+"","Cyanopica cyanus","Erithacus rubecula","Ficedula hypoleuca","Luscinia megarhynchos","Muscicapa striata","Phoenicurus phoenicurus","Saxicola torquata","Sturnus unicolor","Sylvia atricapilla","Sylvia borin","Sylvia cantillans","Sylvia communis","Sylvia hortensis","Sylvia melanocephala","Sylvia undata","Turdus merula","Turdus philomelos"
+"Asparagus aculeatus",0,1,0,0,0,0,0,0,1,1,0,0,0,1,0,1,0
+"Asparagus aphyllus",0,1,0,0,0,0,0,0,1,1,0,0,0,1,0,1,1
+"Crataegus monogyna",1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0
+"Daphne gnidium",0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,0,0
+"Lonicera periclymenum",0,0,0,0,0,0,0,0,1,1,1,0,0,1,0,1,0
+"Myrtus communis",1,1,0,0,0,0,1,1,1,0,1,0,0,1,1,1,1
+"Olea europaea",1,1,0,0,0,0,1,1,1,1,0,0,0,1,0,1,1
+"Osyris alba",0,0,0,0,0,0,0,0,1,1,0,0,0,1,0,1,1
+"Phillyrea angustifolia",1,1,1,0,0,0,0,0,1,1,1,1,1,1,0,1,1
+"Pistacia lentiscus",1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1
+"Pyrus bourgaeana",1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0
+"Rhamnus lycioides",1,1,1,1,1,1,0,0,1,1,1,1,0,1,0,1,0
+"Rubia pregrina",0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,1,0
+"Rubus ulmifolius",1,1,1,1,1,1,0,0,1,1,1,1,1,1,0,1,0
+"Smilax aspera",0,1,1,0,0,0,0,0,1,1,0,0,1,1,0,1,0
+"Tamus communis",1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,0

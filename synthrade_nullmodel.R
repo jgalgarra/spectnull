@@ -80,8 +80,8 @@ SynthMatrix <- function(matrixemp){
   texp <- n_exp*(n_exp-seed_size)/(2*seed_size)
   timp <- n_imp*(n_imp-seed_size)/(2*seed_size)
   
-  #tf <- max(texp,timp) OJO CAMBIO IMPORTANTE 
-  tf <- min(texp,timp)
+  tf <- max(texp,timp)# OJO CAMBIO IMPORTANTE 
+  #tf <- min(texp,timp)
 
   lambda_exp = n_exp*(n_exp-seed_size)/(2*tf)
   lambda_imp = n_imp*(n_imp-seed_size)/(2*tf)
