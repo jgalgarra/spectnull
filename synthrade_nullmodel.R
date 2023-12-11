@@ -96,8 +96,6 @@ SynthMatrix <- function(matrixemp){
   tf <- 0
   sim_step <- 0
 
-  
-  #while ((morenewnodes)|| (cuenta_links < numlinks))
   while (cuenta_links < numlinks)
   {
     sim_step <- sim_step + 1
