@@ -1,108 +1,128 @@
 # This script computes the average normalized distances.
 # It must be run after normalize_distances.R
 
-normresults <- "results/normalized/"
-results <- "results/"
-print("Reading all normalized distances from file")
-alldistances <- read.csv(paste0(normresults,"ALLNORMALIZED.csv"))
-alldistances$network <- gsub("MINMAX_MODS_","",alldistances$network)
-networktypes <- read.csv(paste0(normresults,"networktypes.csv"))
+library("data.table")
+source("config_values.R")
 
-print("Computing averages")
-lnetw <- unique(alldistances$network)
-alldistances$type <- "BINARY"
-for (netw in lnetw){
-  ntype <- networktypes[networktypes$network==netw,]
-  alldistances[alldistances$network==netw,]$type <- ntype$type
-#   adj_norm_net <- alldistances[(alldistances$network==netw) & (alldistances$MODEL =="NETWORK") & (alldistances$ind=="adj_norm_energy"),]$values
-#   lpl_norm_net <- alldistances[(alldistances$network==netw) & (alldistances$MODEL =="NETWORK") & (alldistances$ind=="lpl_norm_energy"),]$values
-#   spectrad_norm_net <- alldistances[(alldistances$network==netw) & (alldistances$MODEL =="NETWORK") & (alldistances$ind=="spect_rad_norm"),]$values
-#   alldistances[(alldistances$network==netw) & (alldistances$ind=="adj_norm_energy"),]$normdist = alldistances[(alldistances$network==netw) & (alldistances$ind=="adj_norm_energy"),]$values - adj_norm_net
-#   alldistances[(alldistances$network==netw) & (alldistances$ind=="lpl_norm_energy"),]$normdist = alldistances[(alldistances$network==netw) & (alldistances$ind=="lpl_norm_energy"),]$values - lpl_norm_net
-#   alldistances[(alldistances$network==netw) & (alldistances$ind=="spect_rad_norm"),]$normdist = alldistances[(alldistances$network==netw) & (alldistances$ind=="spect_rad_norm"),]$values - spectrad_norm_net
-#   
-#   print(paste(netw,adj_norm_net))
+
+computemeandist <- function(alldistances,magnitude,netw){
+  magnitude_data <- alldistances[(alldistances$ind==magnitude) & (alldistances$network==netw),]
+  models <- unique(magnitude_data$MODEL)
+  for (m in models){
+    #if (m!="NETWORK")
+      meandist <- rbind(meandist,data.frame("network"=netw,
+                                            "meannormdist"=mean(magnitude_data[magnitude_data$MODEL==m,]$normdist),
+                                            "MODEL"=m,
+                                            "disttype"=magnitude,
+                                            "networktype"=magnitude_data$type[1]))
+  }
+  return(meandist)
 }
 
-meandist <- data.frame("network"=c(),"meannormdist"=c(),"MODEL"=c(), "disttype"=c(), "networktype"=c())
-for (netw in lnetw){
-  adj_data <- alldistances[(alldistances$ind=="adj_norm_energy") & (alldistances$network==netw),]
-  models <- unique(adj_data$MODEL)
-  for (m in models){
-    if (m!="NETWORK")
-      meandist <- rbind(meandist,data.frame("network"=netw,
-                                            "meannormdist"=mean(adj_data[adj_data$MODEL==m,]$normdist),
-                                            "MODEL"=m,
-                                            "disttype"="adj_norm_energy",
-                                            "networktype"=adj_data$type[1]))
-  }
-  lpl_data <- alldistances[(alldistances$ind=="lpl_norm_energy") & (alldistances$network==netw),]
-  models <- unique(lpl_data$MODEL)
-  for (m in models){
-    if (m!="NETWORK")
-      meandist <- rbind(meandist,data.frame("network"=netw,
-                                            "meannormdist"=mean(lpl_data[lpl_data$MODEL==m,]$normdist),
-                                            "MODEL"=m,
-                                            "disttype"="lpl_norm_energy",
-                                            "networktype"=lpl_data$type[1]))
-    spect_data <- alldistances[(alldistances$ind=="spect_rad_norm") & (alldistances$network==netw),]
-    models <- unique(spect_data$MODEL)
-    for (m in models){
-      if (m!="NETWORK")
-        meandist <- rbind(meandist,data.frame("network"=netw,
-                                              "meannormdist"=mean(spect_data[spect_data$MODEL==m,]$normdist),
-                                              "MODEL"=m,
-                                              "disttype"="spect_rad_norm",
-                                              "networktype"=spect_data$type[1]))
+for (weightrf in lweightrf)
+{
+  print(paste("Transformation",weightrf))
+  rdir <- paste0(debugpref,dbaseb,weightrf,"/",rdirb)
+  resultsdir <- rdir
+  normresults <- paste0(rdir,"normalized/")
+  print("Reading all normalized distances from file")
+  alldistances <- fread(paste0(normresults,"ALLNORMALIZED.csv"))
+  alldistances$network <- gsub("MINMAX_MODS_","",alldistances$network)
+  networktypes <- read.csv(paste0(normresults,"networktypes.csv"))
+  
+  print("Computing averages")
+  lnetw <- unique(alldistances$network)
+  
+  #lnetw <- lnetw[!grepl("HP",lnetw)]
+  
+  alldistances$type <- "BINARY"
+  meandist <- data.frame("network"=c(),"meannormdist"=c(),"MODEL"=c(), "disttype"=c(), "networktype"=c())
+  for (netw in lnetw){
+    ntype <- networktypes[networktypes$network==netw,]
+    nestedmags <- read.csv(paste0(resultsdir,"NESTED_",netw,".csv"))
+    alldistances[alldistances$network==netw,]$type <- ntype$type
+    print(netw)
+    mdistalgcon <- computemeandist(alldistances,"algebraic_connectivity",netw)
+    mdistadj <- computemeandist(alldistances,"adj_energy",netw)
+    mdistlpl <- computemeandist(alldistances,"lpl_energy",netw)
+    mdistspect <- computemeandist(alldistances,"spect_rad",netw)
+    meandist <- rbind(meandist,mdistalgcon,mdistadj,mdistlpl,mdistspect)
+    if (ntype$type=="WEIGHTED"){
+      mdistadj <- computemeandist(alldistances,"adj_weighted_energy",netw)
+      mdistlpl <- computemeandist(alldistances,"lpl_weighted_energy",netw)
+      mdistspect <- computemeandist(alldistances,"spect_rad_weighted",netw)
+      meandist <- rbind(meandist,mdistadj,mdistlpl,mdistspect)
     }
+    meandist <- meandist[!duplicated(meandist),]
   }
-}
-print("Saving normalized mean distances file")
-write.csv(meandist,paste0(normresults,"meannormdistances.csv"),row.names=FALSE)
-
-print("Computing correlations...")
-networkmags <- read.csv(paste0(results,"networkmagnitudes.csv"))
-normdistavgs <- read.csv(paste0(normresults,"meannormdistances.csv"))
-normdistavgs$interaction <- ""
-if (sum(grepl("_PL_",normdistavgs$network))>1)
-  normdistavgs[grepl("_PL_",normdistavgs$network),]$interaction = "HP"
-if (sum(grepl("_HP_",normdistavgs$network))>1)
-  normdistavgs[grepl("_HP_",normdistavgs$network),]$interaction = "HP"
-if (sum(grepl("_SD_",normdistavgs$network))>1)
-  normdistavgs[grepl("_SD_",normdistavgs$network),]$interaction = "SD"
-normdistavgs$links <- 0
-normdistavgs$nodes <- 0
-normdistavgs$corlinks <- 0
-normdistavgs$cornodes <- 0
-lntype <- unique(normdistavgs$networktype)
-ldisttype <- unique(normdistavgs$disttype)
-lmodel <- unique(normdistavgs$MODEL)
-
-datacorr <- data.frame("nettype"=c(),"disttype"=c(),"model"=c(),"corrlinks"=c(),"corrnodes"=c())
-nets <- unique(normdistavgs$network)
-for (i in 1:nrow(normdistavgs)){
-  dtype <- normdistavgs$disttype[i]
-  dfn <- networkmags[networkmags$Network==normdistavgs$network[i],]
-  normdistavgs$links[i] <- dfn$Links[1]
-  normdistavgs$nodes[i] <- dfn$NodesA[1]+dfn$NodesB[1]
-}
-for (i in 1:nrow(normdistavgs[normdistavgs$network==nets[1],])){
-  nmdata <- normdistavgs[i,]
-  for (ntype in lntype){
-    for (nmodel in lmodel){
-      distcorrdata <- normdistavgs[normdistavgs$MODEL==nmodel &  
-                                     normdistavgs$disttype==nmdata$disttype & 
-                                     normdistavgs$networktype == ntype,]
-      mycorrlinks <- cor(distcorrdata$meannormdist,distcorrdata$links,method = "spearman")
-      mycorrnodes <- cor(distcorrdata$meannormdist,distcorrdata$nodes,method = "spearman")
-      if (!is.na(mycorrlinks)){
-        datacorr <- rbind(datacorr,data.frame("nettype"=ntype, "disttype"=nmdata$disttype,
-                                              "model"=nmodel,"corrlinks"=abs(mycorrlinks),"corrnodes"=abs(mycorrnodes)))
+  print("Saving normalized mean distances file")
+  meandist <- meandist[!(grepl("weighted",meandist$disttype) & (meandist$networktype=="BINARY")),]
+  meandist[abs(meandist$meannormdist)<0.000001,]$meannormdist=0
+  fwrite(meandist,paste0(normresults,"meannormdistances.csv"),row.names=FALSE)
+  print("Computing correlations...")
+  networkmags <- read.csv(paste0(resultsdir,"networkmagnitudes.csv"))
+  normdistavgs <- read.csv(paste0(normresults,"meannormdistances.csv"))
+  normdistavgs$interaction <- ""
+  if (sum(grepl("_PL_",normdistavgs$network))>1)
+    normdistavgs[grepl("_PL_",normdistavgs$network),]$interaction = "PL"
+  if (sum(grepl("_HP_",normdistavgs$network))>1)
+    normdistavgs[grepl("_HP_",normdistavgs$network),]$interaction = "HP"
+  if (sum(grepl("_SD_",normdistavgs$network))>1)
+    normdistavgs[grepl("_SD_",normdistavgs$network),]$interaction = "SD"
+  normdistavgs$links <- 0
+  normdistavgs$nodes <- 0
+  normdistavgs$weight <- 0
+  normdistavgs$corlinks <- 0
+  normdistavgs$cornodes <- 0
+  normdistavgs$corweight <- 0
+  lntype <- unique(normdistavgs$networktype)
+  ldisttype <- unique(normdistavgs$disttype)
+  lmodel <- unique(normdistavgs$MODEL)
+  
+  
+  datacorr <- data.frame("disttype"=c(),"model"=c(),"corrlinks"=c(),"corrnodes"=c())
+  nets <- unique(normdistavgs$network)
+  for (i in 1:nrow(normdistavgs)){
+     dtype <- normdistavgs$disttype[i]
+     dfn <- networkmags[networkmags$Network==normdistavgs$network[i],]
+     normdistavgs$links[i] <- dfn$Links[1]
+     normdistavgs$nodes[i] <- dfn$NodesA[1]+dfn$NodesB[1]
+     normdistavgs$weight[i] <- dfn$Weight[1]
+     
+  }
+  
+  for (disttype in ldisttype)
+    for (model in lmodel){
+      for (nclass in c(unique(normdistavgs$interaction),"ALL")){
+      print(paste(disttype,model,nclass))
+      corrdata <- meandist[meandist$MODEL==model & meandist$disttype==disttype,]
+      if (nclass!="ALL")
+        corrdata <- corrdata[grepl(nclass,corrdata$network),]
+      if (nrow(corrdata)>0 )
+        if(sd(corrdata$meannormdist)>0){
+        corrdata$links <- 0
+        corrdata$nodes <- 0
+        corrdata$weight <- 0
+        for (i in 1:nrow(corrdata)){
+         dfn <- networkmags[networkmags$Network==corrdata$network[i],]
+         corrdata[i,]$links <- dfn$Links[1]
+         corrdata[i,]$nodes <- dfn$NodesA[1]+dfn$NodesB[1]
+         corrdata[i,]$weight <- dfn$Weight[1]
+        }
+        mycorrlinks <- cor(corrdata$meannormdist,corrdata$links,method = "spearman")
+        mycorrnodes <- cor(corrdata$meannormdist,corrdata$nodes,method = "spearman")
+        mycorrweight <- cor(corrdata$meannormdist,corrdata$weight,method = "spearman")
+        
+        if (!is.na(mycorrlinks))
+          datacorr <- rbind(datacorr,data.frame("disttype"=disttype,"model"=model,
+                                                "nclass"=nclass,
+                                                "corrlinks"=mycorrlinks,
+                                                "corrnodes"=mycorrnodes,
+                                                "corrweight"=mycorrweight))
       }
     }
   }
-}
-datacorr <- datacorr[!duplicated(datacorr), ]
-print("Saving correlations file")
-write.csv(datacorr,paste0(normresults,"corrnormdistances.csv"),row.names=FALSE)
-
+  datacorr <- datacorr[!duplicated(datacorr), ]
+  print("Saving correlations file")
+  fwrite(datacorr,paste0(normresults,"corrnormdistances.csv"),row.names=FALSE)
+}  

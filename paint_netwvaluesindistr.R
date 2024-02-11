@@ -1,5 +1,6 @@
 library(ggplot2)
 library(patchwork)
+library("data.table")
 
 plot_distr_null <- function(df,nvalue,networkname="",title="",xl="",yl=""){
   plot <- ggplot(data=df)+geom_histogram(aes(x=values,fill=MODEL),bins=30,alpha=0.5)+
@@ -14,7 +15,7 @@ plot_distr_null <- function(df,nvalue,networkname="",title="",xl="",yl=""){
 
 
 rdir <- "results/"
-networkmags <- read.csv("results/networkmagnitudes.csv")
+networkmags <- fread("results/networkmagnitudes.csv")
 lnetw <- unique(networkmags$Network)
 
 lmagnitudes <- c("adj_energy","lpl_energy","spect_rad")

@@ -21,24 +21,24 @@ PegaRes <- function(nombre,datinp){
 
 inputdir <- "fakedata/"
 
-datosdebipartite <- FALSE
+datosdebipartite <- TRUE
+printzigs <- FALSE
 
 if (datosdebipartite){
   
-  webs <- list(Safariland, barrett1987, elberling1999, 
+  webs <- list(barrett1987,Safariland,  elberling1999, 
                memmott1999, motten1982, olesen2002aigrettes)
-  webs.names <- c("Safariland", "barrett1987", "elberling1999", 
+  webs.names <- c( "barrett1987","Safariland", "elberling1999", 
                   "memmott1999", "motten1982", "olesen2002aigrettes") 
   
-  
-  webs <- list(Safariland)
-  webs.names <- c("Safariland") 
+  webs <- list(motten1982)
+  webs.names <- c("motten1982") 
   
   # Re-name the datasets according to the sites for each plant-pollinator network
   names(webs) <- webs.names
   
   netw <- webs.names[[1]]
-  write.csv(webs[[1]],paste0(inputdir,netw,".csv"))
+    write.csv(as.matrix(webs[[1]]),paste0(inputdir,netw,".csv"))
 } else {
   netw <- "M_PL_024"
 }
@@ -51,7 +51,8 @@ result_analysis <- analyze_network(directory = inputdir, paste0(netw,".csv"), gu
 
 if (!datosdebipartite)
   webs <- list(result_analysis$matrix)
-pgr <- ziggurat_graph(inputdir,paste0(netw,".csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
+if (printzigs)
+  pgr <- ziggurat_graph(inputdir,paste0(netw,".csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
 
 redpesada <- sum(webs[[1]]>1)
 #redpesada <- TRUE
@@ -115,20 +116,12 @@ comparativa = rbind(comparativa,PegaRes("swap",net.nulls.swap[[1]][[1]]))
 # visweb(net.nulls.vaz[[1]][[1]])
 # visweb(net.nulls.swap[[1]][[1]])
 
-write.csv(net.nulls.r2d[[1]][[1]],paste0(inputdir,netw,"_r2d.csv"))
-pgr <- ziggurat_graph(inputdir,paste0(netw,"_r2d.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
-write.csv(net.nulls.vaz[[1]][[1]],paste0(inputdir,netw,"_vaz.csv"))
-pgr <- ziggurat_graph(inputdir,paste0(netw,"_vaz.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
-# if (redpesada){
-#   print("net.nulls.swap")
-#   # Make null models for all sites using the swap.web null
-#   net.nulls.swap <- nullmodel(webs[[1]],N=1,method="vaz")
-#   
-#   lapply(webs, nullmodel, method = "swap.web", N = Nredes)
-#   write.csv(net.nulls.swap[[1]][[1]],paste0(inputdir,netw,"_swap.csv"))
-#   pgr <- ziggurat_graph(inputdir,paste0(netw,"_swap.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
-#   comparativa = rbind(comparativa,PegaRes("swap",net.nulls.swap[[1]][[1]]))
-# }
+if (printzigs){
+  write.csv(net.nulls.r2d[[1]][[1]],paste0(inputdir,netw,"_r2d.csv"))
+  pgr <- ziggurat_graph(inputdir,paste0(netw,"_r2d.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
+  write.csv(net.nulls.vaz[[1]][[1]],paste0(inputdir,netw,"_vaz.csv"))
+  pgr <- ziggurat_graph(inputdir,paste0(netw,"_vaz.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE,weighted_links = "ln")
+ }
 
 
 print("net.mgen")
@@ -138,8 +131,8 @@ print("mgen")
 net.nulls.mgen <- lapply(webs, nullmodel, method = "mgen", N = Nredes)
 print(paste(netw,"shuffle A",ncol(net.nulls.shuffle[[1]][[1]])," B",nrow(net.nulls.shuffle[[1]][[1]]),
             " Links",sum(net.nulls.shuffle[[1]][[1]]>0),"Pesada",sum(net.nulls.shuffle[[1]][[1]]>1)))
-
-pgr <- ziggurat_graph(inputdir,paste0(netw,"_mgen.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE)
+if (printzigs)
+  pgr <- ziggurat_graph(inputdir,paste0(netw,"_mgen.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE)
 comparativa = rbind(comparativa,PegaRes("mgen",net.nulls.mgen[[1]][[1]]))
 
 print("shuffle.web")
@@ -148,6 +141,7 @@ print(paste(netw,"shuffle A",ncol(net.nulls.shuffle[[1]][[1]])," B",nrow(net.nul
             " Links",sum(net.nulls.shuffle[[1]][[1]]>0),"Pesada",sum(net.nulls.shuffle[[1]][[1]]>1)))
 
 write.csv(net.nulls.shuffle[[1]][[1]],paste0(inputdir,netw,"_shuffle.csv"))
-pgr <- ziggurat_graph(inputdir,paste0(netw,"_shuffle.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE)
+if (printzigs)
+  pgr <- ziggurat_graph(inputdir,paste0(netw,"_shuffle.csv"),plotsdir=odir,print_to_file = printtofile,show_title = TRUE)
 comparativa = rbind(comparativa,PegaRes("shuffle",net.nulls.shuffle[[1]][[1]]))
 write.csv(comparativa,paste0(inputdir,"comp_",netw,".csv"))
