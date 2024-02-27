@@ -1,20 +1,4 @@
-save_nested_model <- function(nstm,netname,dirn,nestedname){
-  filenull <- paste0(gsub(".csv","",netname),"_NULL_",nestedname,".csv")
-  print(paste("FILENULL",filenull))
-  write.csv(nstm,paste0(dirnulls,filenull))
-}
 
-save_rnd_model <- function(nstm,netname,dirn,rname){
-  filenull <- paste0(gsub(".csv","",netname),"_NULL_",rname,".csv")
-  print(paste("FILENULL",filenull))
-  write.csv(nstm,paste0(dirnulls,filenull))
-}
-
-save_null_model <- function(nstm,netname,dirn,nullname){
-  filenull <- paste0(gsub(".csv","",netname),"_NULL_",nullname,".csv")
-  print(paste("FILENULL",filenull))
-  write.csv(nstm,paste0(dirnulls,filenull))
-}
 
 create_nullsinfo <- function(num_experiments){
   nullsinfo <- data.frame("spect_rad"=replicate(num_experiments,INCOMPLETE_MODEL_VALUE))
@@ -27,7 +11,7 @@ create_nullsinfo <- function(num_experiments){
   return(nullsinfo)
 }
 
-create_datamodels <- function(networkspect,pnm,pnw){
+create_datamodels <- function(weighted_network,networkspect,pnm,pnw){
   datamod <- stack(networkspect)
   datamod$MODEL <- "NETWORK"
   datamod <- rbind(datamod,data.frame("values"=pnm$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
@@ -182,8 +166,6 @@ dummynullmodel_build <- function(nodes_guild_a,nodes_guild_b,num_links,re,swap_p
   j = 1
   found <- FALSE
   while ((!found) & (j<10)){
-    if (j>1)
-      print(paste("dummy",j))
     pmatrix <- mmatrix
     onestozeroes <- sample(ones,swap_links,replace=FALSE)
     zeroestoones <- sample(zeroes,swap_links,replace=FALSE)
@@ -195,7 +177,7 @@ dummynullmodel_build <- function(nodes_guild_a,nodes_guild_b,num_links,re,swap_p
   return(pmatrix)
 }
 
-null_model_process <- function(admatrix,re,weighted_network)
+null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
 {
   mtx <- sq_adjacency(admatrix,re$num_guild_a,re$num_guild_b)
   model_matrix <- mtx[[1]]  # binarized matrix
@@ -205,11 +187,7 @@ null_model_process <- function(admatrix,re,weighted_network)
   degreesnullNMP <- rowSums(model_matrix)
   for (i in 1:nrow(lapl_nullNMP))
     lapl_nullNMP[i,i] <- degreesnullNMP[i]
-  
-  #lapl_normalized_nullNMP <- create_normalized_laplacian(model_weighted_matrix)
-  
   lpl_spect_nullNMP = eigen(lapl_nullNMP)
-  #lpl_spect_nullNMP = eigen(lapl_normalized_nullNMP)
   if (weighted_network){
     nullNMP_weighted_spect <- eigen(model_weighted_matrix)
     lapl_weighted_nullNMP <- 0-model_weighted_matrix
@@ -271,8 +249,6 @@ sq_adjacency <- function(rmatrix, num_guild_a, num_guild_b)#, normalize=TRUE)
   z_matrix <- matrix(0, ncol = num_guild_a, nrow = num_guild_a)
   incidmatrix <- rbind(cbind(z_matrix,t(incidmatrix[,1:num_guild_a])),incidmatrix)
   binarized_incidmatrix <- incidmatrix
-  # if (normalize)
-  #   incidmatrix <- incidmatrix/sum(incidmatrix)
   if (max(incidmatrix)>1)
     binarized_incidmatrix[incidmatrix>1]=1
   return(list(binarized_incidmatrix, incidmatrix))  # They are equal for binary networks
@@ -298,36 +274,31 @@ store_model_results <- function(dp,num_links,num_nodes,magnitudes,weighted){
   return(as.data.frame(mr))
 }
 
-gen_null_model <- function(typemodel,resanalysis,nodesga,nodesgb,nlinks,nnodes,magnitudes,weighted)
+gen_null_model <- function(typemodel,datamod,resanalysis,trfmatrix,nodesga,nodesgb,nlinks,nnodes,magnitudes,weighted)
 {
   if (typemodel == "WRND"){
-    incidmatrix <- WRG_build_conserva(resanalysis$matrix,nodesga,nodesgb,nlinks)
+    incidmatrix <- WRG_build_conserva(trfmatrix,nodesga,nodesgb,nlinks)
   }
   if (typemodel == "WRNDGAR"){
-    incidmatrix <- WRGGAR_build(resanalysis$matrix,nodesga,nodesgb,nlinks)
+    incidmatrix <- WRGGAR_build(trfmatrix,nodesga,nodesgb,nlinks)
   }
   if (typemodel == "RND"){
-    incidmatrix <- erdosrmodel(binarize_matrix(resanalysis$matrix),nodesga,nodesgb,nlinks)
+    incidmatrix <- erdosrmodel(binarize_matrix(trfmatrix),nodesga,nodesgb,nlinks)
   }
   if (typemodel == "VAZ")
-    incidmatrix <- bipartite::nullmodel(resanalysis$matrix,N=1,method="vaz")[[1]]
+    incidmatrix <- bipartite::nullmodel(trfmatrix,N=1,method="vaz")[[1]]
   if (typemodel == "BVAZ")
-    incidmatrix <- bipartite::nullmodel(binarize_matrix(resanalysis$matrix),N=1,method="vaz")[[1]]
+    incidmatrix <- bipartite::nullmodel(binarize_matrix(trfmatrix),N=1,method="vaz")[[1]]
   if (typemodel == "SWAP")
-    #incidmatrix <- bipartite::nullmodel(resanalysis$matrix,N=1,method="swap.web")[[1]]
-    incidmatrix <- bipartite::swap.web(resanalysis$matrix,N=1,c.crit=1000)[[1]]
-  
-  
-  # if (typemodel == "BSWAP")
-  #   incidmatrix <- bipartite::nullmodel(binarize_matrix(resanalysis$matrix),N=1,method="swap.web")[[1]]
+    incidmatrix <- bipartite::swap.web(trfmatrix,N=1,c.crit=1000)[[1]]
   if (typemodel == "MGEN")
-    incidmatrix <- bipartite::nullmodel(resanalysis$matrix,N=1,method="mgen")[[1]]
+    incidmatrix <- bipartite::nullmodel(trfmatrix,N=1,method="mgen")[[1]]
   if (typemodel == "PATEFIELD")
-    incidmatrix <- bipartite::nullmodel(resanalysis$matrix,N=1,method="r2dtable")[[1]]
+    incidmatrix <- bipartite::nullmodel(trfmatrix,N=1,method="r2dtable")[[1]]
   if (typemodel == "SHUFFLE")
-    incidmatrix <- bipartite::nullmodel(resanalysis$matrix,N=1,method="shuffle.web")[[1]]
+    incidmatrix <- bipartite::nullmodel(trfmatrix,N=1,method="shuffle.web")[[1]]
   if (typemodel == "BSHUFFLE")
-    incidmatrix <- bipartite::nullmodel(binarize_matrix(resanalysis$matrix),N=1,method="shuffle.web")[[1]]
+    incidmatrix <- bipartite::nullmodel(binarize_matrix(trfmatrix),N=1,method="shuffle.web")[[1]]
   if(typemodel == "SYTR"){
     repeat{
       incidmatrix <- SynthTradeNull(resanalysis)$matrix_synth
@@ -338,11 +309,10 @@ gen_null_model <- function(typemodel,resanalysis,nodesga,nodesgb,nlinks,nnodes,m
   if(typemodel == "WSYTR"){
     repeat{
       incidmatrix <- SynthTradeNull(resanalysis)$matrix_synth
-      #if(sum(incidmatrix>0)==resanalysis$links)
       if(resanalysis$links <= 10)  
         break
     }
-    incidmatrix <- distributeweight(incidmatrix,resanalysis$matrix) 
+    incidmatrix <- distributeweight(incidmatrix,trfmatrix) 
     
   }
   
@@ -350,7 +320,7 @@ gen_null_model <- function(typemodel,resanalysis,nodesga,nodesgb,nlinks,nnodes,m
     fdummy <- as.integer(gsub("DU_","",typemodel))
     incidmatrix <- dummynullmodel_build(nodesga,nodesgb,nlinks,resanalysis,fdummy)
   }
-  resp <- null_model_process(incidmatrix,resanalysis,weighted)
+  resp <- null_model_process(incidmatrix,resanalysis,weighted,nlinks,nnodes)
   return(list("mres"=store_model_results(resp,nlinks,nnodes,magnitudes,weighted),"resp"=resp,
               "incidmatrix"=incidmatrix))
 }
@@ -421,9 +391,9 @@ create_bin_nested_model <- function(na,nb,nlinks){
   return(nmatrix)
 }
 
-create_weighted_nested_model <- function(na,nb,nlinks){
+create_weighted_nested_model <- function(na,nb,nlinks,trfmatrix){
   nmatrix <- create_bin_nested_model(na,nb,nlinks)
-  empmatrix <- result_analysis$matrix
+  empmatrix <- trfmatrix
   nweight <- sum(empmatrix)
   marginal_rows <- rowSums(nmatrix)/sum(nmatrix)
   marginal_cols <- colSums(nmatrix)/sum(nmatrix)
@@ -442,7 +412,7 @@ create_weighted_nested_model <- function(na,nb,nlinks){
     nestedmatrix[pmax] <- w
     wmatrix[pmax] <- 0
   }
-  nestedmatrix <- nestedmatrix * sum(result_analysis$matrix) / sum(nestedmatrix)
+  nestedmatrix <- nestedmatrix * sum(empmatrix) / sum(nestedmatrix)
   
   return(nestedmatrix)
 }
@@ -495,6 +465,7 @@ remove_model_data <- function(m,mod){
 
 
 process_nested_model_bin <- function(nodes_a,nodes_b,num_links){
+  num_nodes <- nodes_a + nodes_b
   nstmodel <- create_bin_nested_model(nodes_a,nodes_b,num_links)
   nstmtx <- sq_adjacency(nstmodel, nodes_a, nodes_b)
   nstadj_sq_matrix <- nstmtx[[1]]  # binarized matrix
@@ -514,8 +485,9 @@ process_nested_model_bin <- function(nodes_a,nodes_b,num_links){
   return(calc_values)
 }
 
-process_nested_model_weighted <- function(nodes_a,nodes_b,num_links){
-  weightednstmodel <- create_weighted_nested_model(nodes_a,nodes_b,num_links)
+process_nested_model_weighted <- function(nodes_a,nodes_b,num_links,trfmatrix){
+  num_nodes <- nodes_a + nodes_b
+  weightednstmodel <- create_weighted_nested_model(nodes_a,nodes_b,num_links,trfmatrix)
   weightednstmtx <- sq_adjacency(weightednstmodel, nodes_a, nodes_b)
   weightednstadj_sq_matrix <- weightednstmtx[[2]] 
   weightednstadj_spect <- eigen(weightednstadj_sq_matrix)
@@ -532,6 +504,38 @@ process_nested_model_weighted <- function(nodes_a,nodes_b,num_links){
   weightednnst <- nested(as.matrix(weightednstmodel), "ALL")
   calc_values <- list("weightednstmodel"=weightednstmodel,"weightednnst"=weightednnst,
                       "weightednstadj_spect" = weightednstadj_spect, "weightednstspect_rad" = weightednstspect_rad,
-                      "weightednstadj_energy" = weightednstadj_energy, "weightednstlpl_spect"=weightednstlpl_spect, "weightednstlpl_energy" = weightednstlpl_energy)
+                      "weightednstadj_energy" = weightednstadj_energy, "weightednstlpl_spect"=weightednstlpl_spect, 
+                      "weightednstlpl_energy" = weightednstlpl_energy)
   return(calc_values)
+}
+
+
+# Stack null model results: value, magnitude, model
+stack_models_results <- function(nnm)
+{
+  datamod <- nnm$datamod
+  for (m in names(nnm$modresults)){
+    sm <- stack(nnm$modresults[[m]])
+    sm$MODEL <- m
+    datamod <- rbind(datamod,sm)
+    if (!nnm$weighted_network)
+      datamod <- datamod[!grepl("weighted",datamod$ind),]
+  }
+  return(datamod)
+}
+
+save_null_model <- function(netname,dirn,incidmatrix,nullname,adj_spect_val,lpl_spect_val,
+                            wadj_spect_val=NULL,wlpl_spect_val=NULL){
+  filenull <- paste0(gsub(".csv","",netname),"_NULL_",nullname,".csv")
+  write.csv(incidmatrix,paste0(dirnulls,filenull))
+  filenullspect <- paste0(gsub(".csv","",netname),"_SPECTRA_",nullname,".csv")
+  spectra <- data.frame("adjacency"=adj_spect_val$values,"laplacian"=lpl_spect_val$values)
+  spectra$adjacency_weighted <- -1
+  spectra$laplacian_weighted <- -1
+  if (!is.null(wadj_spect_val))
+    spectra$adjacency_weighted <- wadj_spect_val$values
+  if (!is.null(wlpl_spect_val))
+    spectra$laplacian_weighted <- wlpl_spect_val$values
+  spectra[abs(spectra)<0.000000001]<-0
+  write.csv(spectra,paste0(dirnulls,filenullspect),row.names=FALSE)
 }

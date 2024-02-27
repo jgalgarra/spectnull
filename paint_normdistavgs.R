@@ -197,7 +197,7 @@ set.seed(122)
 for (weightrf in lweightrf)
 {
   print(paste("Transformation",weightrf))
-  rdir <- paste0(debugpref,dbaseb,weightrf,"/",rdirb,"/")
+  rdir <- paste0(debugpref,dbaseb,weightrf,"/",rdirb)
   resultsdir <- rdir
   normresults <- paste0(rdir,"normalized/")
   odir <- paste0(debugpref,dbaseb,weightrf,"/",odirb)
@@ -327,7 +327,7 @@ for (weightrf in lweightrf)
   normdists$Nodes <- 0
   normdists$Weight <- 0
   for (i in 1:nrow(normdists)){
-    dnet <- nmags[nmags$Network==normdists$network[i],][1]
+    dnet <- nmags[nmags$Network==paste0(normdists$network[i],".csv"),][1]
     normdists$Links[i] <- dnet$Links
     normdists$Nodes[i] <- dnet$NodesA+dnet$NodesB
     normdists$Weight[i] <- dnet$Weight
