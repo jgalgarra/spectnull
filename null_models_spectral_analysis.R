@@ -334,7 +334,7 @@ mnamesweighted <- c("SWAP","WRND","BVAZ","BSHUFFLE","PATEFIELD")
 MIN_LINKS_SIZE <- 20  # Smaller networks are discarded
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*PL*055*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network
