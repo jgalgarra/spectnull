@@ -32,9 +32,9 @@ NESTplot <- function(ndata,yvar,ylabel="",nestmeasure="NODF"){
 }
 
 normdistplot <- function(plotdata,disttype,rvalue){
-  plotdatanetwork <- plotdata[plotdata$MODEL=="NETWORK",]
-  plotdataNULLS <- plotdata[plotdata$MODEL!="NETWORK",]
-  clist <- get_colors(c("NETWORK",unique(plotdataNULLS$MODEL)),colormodels) 
+  plotdatanetwork <- plotdata[plotdata$MODEL %in% c("NETWORK","NESTED"),]
+  plotdataNULLS <- plotdata[!(plotdata$MODEL %in% c("NETWORK","NESTED")),]
+  clist <- get_colors(c("NETWORK","NESTED",unique(plotdataNULLS$MODEL)),colormodels) 
   q <- ggplot(data=plotdataNULLS) +
     geom_jitter(aes( network ,normdist,fill=MODEL),position=position_jitter(0.1),
                 color="transparent",shape=21, size=1,  alpha = 0.3)+
@@ -87,7 +87,6 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
     datarel <- plotdatanor[plotdatanor$ind==disttype,]
     datarel <- datarel[datarel$MODEL!="NETWORK",]
     
-    #rdata <- datarel[datarel$MODEL==lm[1],]
     p <- datarel %>%
       group_by(MODEL)%>%
       summarise(medn = mean(reldist))
@@ -231,13 +230,13 @@ for (weightrf in lweightrf)
     if (nt=="BINARY"){
       #mags <- c("adj_energy","lpl_energy","spect_rad","adj_weighted_energy","lpl_weighted_energy","spect_rad_weighted")
       mags <- lbinmags
-      vmodels <- c("NETWORK","HNESTED","RND", "SHUFFLE","VAZ")
+      vmodels <- c("NETWORK","HNESTED","NESTED","RND", "SHUFFLE","VAZ")
     }
     else {
       mags <- c(lbinmags,lweightmags)
       vmodels <- c("NETWORK","WNESTED", "VAZ","SHUFFLE","WRND","WSYTR","SWAP","PATEFIELD","MGEN")
       binmags <- lbinmags
-      binmodels <- c("NETWORK","HNESTED","RND", "BSHUFFLE","VAZ")
+      binmodels <- c("NETWORK","HNESTED","NESTED","RND", "BSHUFFLE","VAZ")
     }
     for (ms in mags){
       print(paste(ms,j))
@@ -376,7 +375,7 @@ for (weightrf in lweightrf)
   
   # Model comparison plots. All plots
   lm = c("RND","HNESTED")  # The first model will set the order
-  lm = c("NETWORK","SHUFFLE","VAZ","BVAZ","BSHUFFLE",lm)
+  lm = c("NETWORK","NESTED","SHUFFLE","VAZ","BVAZ","BSHUFFLE",lm)
   lnetworktype = c("BINARY","WEIGHTED")
   ldisttype <- lbinmags
   normandreldistplot(alldistances,ldisttype,lm,lnetworktype)

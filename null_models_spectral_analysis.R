@@ -117,14 +117,14 @@ compute_bin_magnitudes <- function(result_analysis,matrix,network_nested_values,
 
 compute_weighted_magnitudes <- function(adj_sq_weighted_matrix)
 {
-  adj_weighted_spect <- eigen(adj_sq_weighted_matrix)
+  adj_weighted_spect <- eigen(adj_sq_weighted_matrix,only.values = TRUE)
   spect_rad_weighted <- adj_weighted_spect$values[1]
   adj_weighted_energy <- AdjweightedEnergy(adj_weighted_spect$values)
   lapl_weighted_matrix <- 0-adj_sq_weighted_matrix
   sumweights <- rowSums(adj_sq_weighted_matrix)
   for (i in 1:nrow(lapl_weighted_matrix))
     lapl_weighted_matrix[i,i] <- sumweights[i]
-  lpl_weighted_spect = eigen(lapl_weighted_matrix)
+  lpl_weighted_spect = eigen(lapl_weighted_matrix,only.values = TRUE)
   lpl_weighted_energy <- LaplweightedEnergy(lpl_weighted_spect$values,num_links,num_nodes)
   print(sprintf("Sum weighted Laplacian spectrum %.2f",sum(lpl_weighted_spect$values)))
   calc_values <- list("adj_weighted_spect"=adj_weighted_spect,
@@ -241,7 +241,7 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
   names(modresults) <- mnames
   specresults <- lapply(1:nmodels, function(x) c())
   names(specresults) <- mnames
-  datamod <- create_datamodels(weighted_network,networkspect,pnm,pnw)
+  datamod <- create_datamodels(weighted_network,networkspect,pnm,pnms,pnw)
   nodes_guild_a <- seq(1,result_analysis$num_guild_a)  # guild a top rows/left columns
   nodes_guild_b <- seq(1,result_analysis$num_guild_b)  # guild b bottom rows/right columns
   for (k in 1:num_experiments) {
@@ -336,7 +336,7 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 #
 # Configuration parameters
 seed <- 122
-num_experiments <- 5
+num_experiments <- 10
 plottofile <- TRUE # Save individual network distributions plot
 plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are
                    # not saved. Run the script with a big number of experiments (~1000) to compute
@@ -350,7 +350,7 @@ mnamesweighted <- c("SWAP","WRND","BVAZ","BSHUFFLE","PATEFIELD")
 MIN_LINKS_SIZE <- 20  # Smaller networks are discarded
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*PL*001*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*SD*00*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network

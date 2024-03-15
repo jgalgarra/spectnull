@@ -123,7 +123,7 @@ plot_all_distr <- function(nname,plotzigs,nnm){
     plheight <- 10
   } else {
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum)
-    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_energy$pimage)
+    winf <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_energy$pimage)
     wtot <- winf
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5))) 

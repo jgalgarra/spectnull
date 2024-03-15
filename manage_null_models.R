@@ -11,12 +11,16 @@ create_nullsinfo <- function(num_experiments){
   return(nullsinfo)
 }
 
-create_datamodels <- function(weighted_network,networkspect,pnm,pnw){
+create_datamodels <- function(weighted_network,networkspect,pnm,pnms,pnw){
   datamod <- stack(networkspect)
   datamod$MODEL <- "NETWORK"
   datamod <- rbind(datamod,data.frame("values"=pnm$nstspect_rad,"ind"="spect_rad","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="HNESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnms$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnms$nstlpl_energy,"ind"="lpl_energy","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnms$nstadj_energy,"ind"="adj_energy","MODEL"="NESTED" ))
+  
   if (weighted_network){
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstspect_rad,"ind"="spect_rad_weighted","MODEL"="WNESTED" ))
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstlpl_energy,"ind"="lpl_weighted_energy","MODEL"="WNESTED" ))
@@ -445,12 +449,10 @@ create_weighted_nested_model <- function(na,nb,nlinks,trfmatrix){
   wweight <- sum(wmatrix)
   for (w in weightsemp){
     pmax <- which(wmatrix==max(wmatrix))[1]
-    #nestedmatrix[pmax] <- w*wmatrix[pmax]
     nestedmatrix[pmax] <- w
     wmatrix[pmax] <- 0
   }
   nestedmatrix <- nestedmatrix * sum(empmatrix) / sum(nestedmatrix)
-  
   return(nestedmatrix)
 }
 
@@ -534,8 +536,12 @@ process_nested_model_bin <- function(nodes_a,nodes_b,num_links,hypernested=TRUE)
 process_nested_model_weighted <- function(nodes_a,nodes_b,num_links,trfmatrix){
   num_nodes <- nodes_a + nodes_b
   weightednstmodel <- create_weighted_nested_model(nodes_a,nodes_b,num_links,trfmatrix)
-  weightednstmtx <- sq_adjacency(weightednstmodel, nodes_a, nodes_b)
-  weightednstadj_sq_matrix <- weightednstmtx[[2]] 
+  if (nodes_a<nodes_b)
+    weightednstmstx <- sq_adjacency(weightednstmodel, nodes_a, nodes_b)
+  else
+    weightednstmstx <- sq_adjacency(weightednstmodel, nodes_b, nodes_a)
+  
+  weightednstadj_sq_matrix <- weightednstmstx[[2]] 
   weightednstadj_spect <- eigen(weightednstadj_sq_matrix,only.values = TRUE)
   weightednstspect_rad <- weightednstadj_spect$values[1]
   print(sprintf("Weighted nested model spectral radius %.2f",weightednstspect_rad))
