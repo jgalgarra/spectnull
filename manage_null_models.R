@@ -404,7 +404,7 @@ create_bin_nested_model <- function(na,nb,nlinks){
       colfill <- which(nmatrix[rowfill,]==0)[1]
     }
   }
-  if(na<nb)
+  if (ncol(nmatrix)>nrow(nmatrix))
     nmatrix <- t(nmatrix)
   return(nmatrix)
 }
@@ -423,7 +423,6 @@ create_hypernested_model <- function(na,nb,links){
   munos <- rep(1,links-sum(mhyp))
   munos<-matrix(c(munos,rep(0,(nr-1)*(nc-1)-sum(munos))),nrow=nr-1,ncol=nc-1,byrow = T)
   mhyp[2:nr,2:nc]<-munos
-  print(paste("nrwo",nrow(mhyp),"ncol",ncol(mhyp)))
   if (ncol(mhyp)>nrow(mhyp))
     mhyp=t(mhyp)
   return(mhyp)
@@ -502,22 +501,29 @@ remove_model_data <- function(m,mod){
 }
 
 
-process_nested_model_bin <- function(nodes_a,nodes_b,num_links){
+process_nested_model_bin <- function(nodes_a,nodes_b,num_links,hypernested=TRUE){
   num_nodes <- nodes_a + nodes_b
-  nstmodel <- create_hypernested_model(nodes_a,nodes_b,num_links)#create_bin_nested_model(nodes_a,nodes_b,num_links)
-  if (nodes_a>nodes_b)
-    nstadj_sq_matrix <- sq_adjacency(nstmodel, nodes_b, nodes_a)[[1]]  # binarized matrix
-  else
+  if (hypernested){
+    nstmodel <- create_hypernested_model(nodes_a,nodes_b,num_links)
+    pref <- "Hyper"
+  } else {
+    nstmodel <- create_bin_nested_model(nodes_a,nodes_b,num_links)
+    pref <- "Soft"
+  }
+  if (nodes_a<nodes_b)
     nstadj_sq_matrix <- sq_adjacency(nstmodel, nodes_a, nodes_b)[[1]]  # binarized matrix
-  nstadj_spect <- eigen(nstadj_sq_matrix)
+  else
+    nstadj_sq_matrix <- sq_adjacency(nstmodel, nodes_b, nodes_a)[[1]]  # binarized matrix
+
+  nstadj_spect <- eigen(nstadj_sq_matrix,only.values = TRUE)
   nstspect_rad <- nstadj_spect$values[1]
-  print(sprintf("Nested model spectral radius %.2f",nstspect_rad))
+  print(sprintf("%s Nested model spectral radius %.2f",pref,nstspect_rad))
   nstadj_energy <- AdjEnergy(nstadj_spect$values)
   nstlapl_matrix <- 0-nstadj_sq_matrix
   nstsumweights <- rowSums(nstadj_sq_matrix)
   for (i in 1:nrow(nstlapl_matrix))
     nstlapl_matrix[i,i] <- nstsumweights[i]
-  nstlpl_spect = eigen(nstlapl_matrix)
+  nstlpl_spect = eigen(nstlapl_matrix,only.values = TRUE)
   nstlpl_energy <- LaplEnergy(nstlpl_spect$values,sum(nstmodel>0),num_nodes)
   nnst <- nested(as.matrix(nstmodel), "ALL")
   calc_values <- list("nstmodel"=nstmodel,"nnst"=nnst,"nstadj_spect" = nstadj_spect, "nstspect_rad" = nstspect_rad,

@@ -5,10 +5,8 @@
 library("data.table")
 source("config_values.R")
 
-
 minmaxnorm <- function(val,minv,maxv){
   return((val-minv)/(maxv-minv))
-  #return((val-minv)/minv)
   }
 
 

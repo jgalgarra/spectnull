@@ -195,13 +195,21 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
   num_nodes <- nodes_a+nodes_b
   bmag <- compute_bin_magnitudes(result_analysis,trfmatrix,network_nested_values,nodes_a,nodes_b,num_links,num_nodes,dfnested)
   #Hyper nested model
-  pnm <- process_nested_model_bin(nodes_a, nodes_b, num_links)
+  pnm <- process_nested_model_bin(nodes_a, nodes_b, num_links, hyper = TRUE)
   dfnested <- rbind(dfnested,bmag$dfnested,data.frame("network"=netw,"model"="HNESTED",
                                         "NODF"=pnm$nnst["NODF"],
                                         "wine"=pnm$nnst["wine"],
                                         "links"= sum(pnm$nstmodel>0),
                                         "totalweight"= sum(pnm$nstmodel)))
   save_null_model(netw,dirnulls,pnm$nstmodel,"HNESTED",pnm$nstadj_spect,pnm$nstlpl_spect)
+  #Soft nested model
+  pnms <- process_nested_model_bin(nodes_a, nodes_b, num_links, hyper = FALSE)
+  dfnested <- rbind(dfnested,bmag$dfnested,data.frame("network"=netw,"model"="NESTED",
+                                                      "NODF"=pnms$nnst["NODF"],
+                                                      "wine"=pnms$nnst["wine"],
+                                                      "links"= sum(pnm$nstmodel>0),
+                                                      "totalweight"= sum(pnms$nstmodel)))
+  save_null_model(netw,dirnulls,pnms$nstmodel,"NESTED",pnms$nstadj_spect,pnms$nstlpl_spect)
   
   
   # Weighted magnitudes, only for weighted networks
@@ -276,7 +284,7 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
                       "mnames"=mnames,"weighted_network"=weighted_network,
                       "nodes_a"=nodes_a,"nodes_b"=nodes_b,"num_links"=num_links,
                       "network_total_weight"=network_total_weight,
-                      "bmag"=bmag,"wmag"=wmag,"pnm"=pnm,"pnw"=pnw)
+                      "bmag"=bmag,"wmag"=wmag,"pnm"=pnm,"pnms"=pnms,"pnw"=pnw)
   return(calc_values)
 }
 
@@ -328,7 +336,7 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 #
 # Configuration parameters
 seed <- 122
-num_experiments <- 1
+num_experiments <- 5
 plottofile <- TRUE # Save individual network distributions plot
 plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are
                    # not saved. Run the script with a big number of experiments (~1000) to compute
@@ -342,7 +350,7 @@ mnamesweighted <- c("SWAP","WRND","BVAZ","BSHUFFLE","PATEFIELD")
 MIN_LINKS_SIZE <- 20  # Smaller networks are discarded
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*PL*002*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*PL*001*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network
