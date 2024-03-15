@@ -2,20 +2,18 @@ plot_distr_null <- function(df,nvalue,networkname="",title="",nestedvalue=""){
   lmodels <- unique(df$type)
   clist <- get_colors(lmodels,colormodels)
   plot <- ggplot(data=df)+geom_histogram(aes(x=vals,fill=type),bins=30,position="identity",alpha=0.6)+
-    xlab("")+ scale_y_continuous(expand=c(0,0))+
-    scale_fill_manual(name='Null model ', breaks=clist$lnames, values=clist$lcolors)+
-    theme_bw()+
-    theme(legend.position = "bottom",legend.text = element_text(size = 8),
-          panel.grid = element_blank(),
-          legend.key.size = unit(0.3, 'cm'))+
-    guides(fill=guide_legend(nrow=2, byrow=TRUE))
+     xlab("")+ scale_y_continuous(expand=c(0,0))+
+     scale_fill_manual(name='Null model ', breaks=clist$lnames, values=clist$lcolors)+
+     theme_bw()+
+     theme(legend.position = "bottom",legend.text = element_text(size = 8),
+           panel.grid = element_blank(),
+           legend.key.size = unit(0.3, 'cm'))+
+     guides(fill=guide_legend(nrow=2, byrow=TRUE))
   plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.5,alpha=0.5)+
-    ggtitle(title)
-  
+          ggtitle(title)
   if (nestedvalue!="")
-    plot <- plot+geom_vline(xintercept = nestedvalue,color = "red", size=0.5,alpha=0.5,linetype="dotted")+
-    ggtitle(title)
-  
+   plot <- plot+geom_vline(xintercept = nestedvalue,color = "red", size=0.5,alpha=0.5,linetype="dotted")+
+         ggtitle(title)
   return(plot)
 }
 
@@ -136,7 +134,7 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   png(paste0(nfile,".png"),width=plwidth*ppi,height=plheight*ppi,res=ppi)
   print(wtot)
   dev.off()
-    if (nnm$weighted_network){
+  if (nnm$weighted_network){
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum | pl_lpl_weighted_spectrum)
     wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_energy$pimage) 
     winf <- (pd_weighted_adj_energy$pimage | pd_weighted_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
@@ -171,11 +169,18 @@ plot_null_model_zigg <- function(modeldata,modeltype,netname,dirn,plotdir){
   pgr_null <- ziggurat_graph(dirn,filenull,plotsdir=plotdir,print_to_file = TRUE,show_title = FALSE,weighted_links = "log10")
 }
 
-plot_ziggurats <- function(nnm,dirnulls,odir){
+plot_ziggurats <- function(nnm,netw,dirnulls,dirdata,odir){
   pdir <- paste0(odir,"zigs/")
+  # Plot original network
+  
+  filenull <- paste0(gsub(".csv","",netw),".csv")
+  result_analysis <- analyze_network(directory = dirdata, filenull, guild_a = "Plant", guild_b = "Pollinator", only_NODF = TRUE)
+  pgr_null <- ziggurat_graph(dirdata,filenull,plotsdir=pdir,print_to_file = TRUE,show_title = FALSE,weighted_links = "log10")
+  
+  plot_null_model_zigg(nstmodel,"HNESTED",netw,dirnulls,pdir)
+  
   for (tmodel in nnm$mnames)
     plot_null_model_zigg(nnm$model_full[[tmodel]],tmodel,netw,dirnulls,pdir)
-  plot_null_model_zigg(nstmodel,"NESTED",netw,dirnulls,odir)
   if (nnm$weighted_network)
     plot_null_model_zigg(ceiling(weightednstmodel),"WNESTED",netw,dirnulls,pdir)
 }

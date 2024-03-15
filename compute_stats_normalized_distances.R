@@ -93,7 +93,7 @@ for (weightrf in lweightrf)
   
   for (disttype in ldisttype)
     for (model in lmodel){
-      for (nclass in c(unique(normdistavgs$interaction),"ALL")){
+      for (nclass in c("ALL")){# c(unique(normdistavgs$interaction),"ALL")){
       print(paste(disttype,model,nclass))
       corrdata <- meandist[meandist$MODEL==model & meandist$disttype==disttype,]
       if (nclass!="ALL")

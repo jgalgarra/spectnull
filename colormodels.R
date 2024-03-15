@@ -16,4 +16,4 @@ colormodels <- c("NETWORK"="blue","RND"="orange", "WRND"="coral3","B/VAZ"="paleg
                  "B/SHUFFLE"="khaki4",
                  "VAZ"="palegreen3","BVAZ"="palegreen","SHUFFLE"="khaki2",
                  "BSHUFFLE"="khaki3","SWAP"="steelblue4","MGEN"="lightblue",
-                 "PATEFIELD"="grey", "SYTR"="pink","WSYTR"="darkorchid1","NESTED"="red","WNESTED"="darkorchid3")
+                 "PATEFIELD"="grey", "SYTR"="pink","WSYTR"="darkorchid1","HNESTED"="red","NESTED"="red4","WNESTED"="darkorchid3")

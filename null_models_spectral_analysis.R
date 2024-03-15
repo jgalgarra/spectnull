@@ -55,17 +55,17 @@ create_networkspect_dataframe <- function(weighted_network,bm,wm){
 # Updates Networ magnitudes file
 store_network_magnitudes_global_file <- function(netw,nnm){
   # Write Network magnitudes to global results file
-  network_data <- data.frame("Network"=netw,"Weighted"=nnm$weighted_network,
+network_data <- data.frame("Network"=gsub(".csv","",netw),"Weighted"=nnm$weighted_network,
                              "NodesA"=nnm$nodes_a,"NodesB"=nnm$nodes_b,"Links"=nnm$num_links,
                              "Weight"=nnm$network_total_weight,"Model"="NETWORK")
   network_values <- cbind(network_data,as.data.frame(nnm$networkspect))
   
   network_values <- rbind(network_values,network_values)
-  network_values[2,]$Model = "NESTED"
+  network_values[2,]$Model = "HNESTED"
   for (i in which(names(network_values)=="spect_rad"):length(names(network_values)))
     network_values[2,i] = INCOMPLETE_MODEL_VALUE
   network_values <- rbind(network_values,network_values[2,])
-  nested_df <- nnm$datamod[nnm$datamod$MODEL=="NESTED",]
+  nested_df <- nnm$datamod[nnm$datamod$MODEL=="HNESTED",]
   for (i in nested_df$ind)
     network_values[2,][i] <- nested_df[nested_df$ind==i,]$values
   network_values[3,]$Model = "WNESTED"
@@ -194,13 +194,15 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
   num_links <- result_analysis$links
   num_nodes <- nodes_a+nodes_b
   bmag <- compute_bin_magnitudes(result_analysis,trfmatrix,network_nested_values,nodes_a,nodes_b,num_links,num_nodes,dfnested)
-  #Nested model
+  #Hyper nested model
   pnm <- process_nested_model_bin(nodes_a, nodes_b, num_links)
-  dfnested <- rbind(dfnested,bmag$dfnested,data.frame("network"=netw,"model"="NESTED",
+  dfnested <- rbind(dfnested,bmag$dfnested,data.frame("network"=netw,"model"="HNESTED",
                                         "NODF"=pnm$nnst["NODF"],
                                         "wine"=pnm$nnst["wine"],
                                         "links"= sum(pnm$nstmodel>0),
                                         "totalweight"= sum(pnm$nstmodel)))
+  save_null_model(netw,dirnulls,pnm$nstmodel,"HNESTED",pnm$nstadj_spect,pnm$nstlpl_spect)
+  
   
   # Weighted magnitudes, only for weighted networks
   if (weighted_network){
@@ -311,16 +313,22 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
   # Save model magnitudes and statistic files
   write.csv(datamod,paste0(rdir,"MODS_",netw),row.names = FALSE)  # Model results
   write.csv(nnm$dfnested,paste0(rdir,"NESTED_",netw),row.names = FALSE)  # Model results
-  # Compute spectral magnitudes of null NESTED and WNESTED models
+  # Compute spectral magnitudes of null HNESTED and WNESTED models
   store_network_magnitudes_global_file(netw,nnm)
   if (plottofile)
-    plot_all_distr(netw,plotzigs,nnm)
+    plot_all_distr(gsub(".csv","",netw),plotzigs,nnm)
   if (plotzigs)
-    plot_ziggurats(nnm,dirnulls,odir)
+    plot_ziggurats(nnm,netw,dirnulls,datadir,odir)
 }
+
+######################################################################################################
+# 
+# PROGRAM BODY
+#
+#
 # Configuration parameters
 seed <- 122
-num_experiments <- 50
+num_experiments <- 1
 plottofile <- TRUE # Save individual network distributions plot
 plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are
                    # not saved. Run the script with a big number of experiments (~1000) to compute
@@ -334,12 +342,12 @@ mnamesweighted <- c("SWAP","WRND","BVAZ","BSHUFFLE","PATEFIELD")
 MIN_LINKS_SIZE <- 20  # Smaller networks are discarded
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*PL*002*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network
   for (weightrf in lweightrf)
     network_null_spectral_distances(netw,weightrf,numexperiments,mnamesbin,mnamesweighted,datadir,rdir,odir,dirnulls,
                                               guild_a_label = "Plant", guild_b_label = "Pollinator",min_links=20,
-                                              plottofile=TRUE,plotzigs=FALSE,networkmagsfile="NetworkMagnitudes.csv")
+                                              plottofile=TRUE,plotzigs=plotzigs,networkmagsfile="NetworkMagnitudes.csv")
 }

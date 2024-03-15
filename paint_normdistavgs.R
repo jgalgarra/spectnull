@@ -162,21 +162,25 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
   }
 }
 
-plot_corr_nor_magnitude <- function(normdists,ndist,ymag,xscale=""){
+plot_corr_nor_magnitude <- function(normdists,ndist,ymag,yscale="",cutoff_links=0){
   dp <- normdists[normdists$disttype==ndist,]
-  p <- ggplot(data=dp,aes(x=dp[[ymag]],y=meannormdist))+geom_point(size=3)+
-    ylab("Normalized distance")+xlab(ymag)+
+  if (cutoff_links != 0)
+    dp <- dp[dp$Links<cutoff_links,]
+  p <- ggplot(data=dp,aes(x=meannormdist,y=dp[[ymag]]))+geom_point(size=3)+
+    xlab("Normalized distance")+ylab(ymag)+xlim(c(min(dp$meannormdist),max(dp$meannormdist)))+
     #scale_x_sqrt()+
     ggtitle(sprintf("Normalized %s Correlation %.2f",ndist,cor(dp[[ymag]],dp$meannormdist,method="spearman")))+theme_bw()
-  if(xscale=="log")
-    p <- p + scale_x_log10()
+  if(yscale=="log")
+    p <- p + scale_y_log10()
   return(p)
 }
 
-plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale=""){
+plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale="",cutoff_links=0){
+  if (cutoff_links != 0)
+    nmags <- nmags[nmags$Links<cutoff_links,]
   p <- ggplot(data=nmags,aes(x=nmags[[xmag]],y=nmags[[ymag]]))+
     geom_point(size=3)+
-    ylab("Magnitude")+xlab(ymag)+
+    xlab("Magnitude")+ylab(ymag)+
     ggtitle(sprintf("%s Correlation %.2f",ndist,cor(nmags[[xmag]],nmags[[ymag]],method="spearman")))+theme_bw()
   if(xscale=="log")
     p <- p + scale_x_log10()
@@ -227,13 +231,13 @@ for (weightrf in lweightrf)
     if (nt=="BINARY"){
       #mags <- c("adj_energy","lpl_energy","spect_rad","adj_weighted_energy","lpl_weighted_energy","spect_rad_weighted")
       mags <- lbinmags
-      vmodels <- c("NETWORK","NESTED","RND", "SHUFFLE","VAZ")
+      vmodels <- c("NETWORK","HNESTED","RND", "SHUFFLE","VAZ")
     }
     else {
       mags <- c(lbinmags,lweightmags)
       vmodels <- c("NETWORK","WNESTED", "VAZ","SHUFFLE","WRND","WSYTR","SWAP","PATEFIELD","MGEN")
       binmags <- lbinmags
-      binmodels <- c("NETWORK","NESTED","RND", "BSHUFFLE","VAZ")
+      binmodels <- c("NETWORK","HNESTED","RND", "BSHUFFLE","VAZ")
     }
     for (ms in mags){
       print(paste(ms,j))
@@ -327,7 +331,7 @@ for (weightrf in lweightrf)
   normdists$Nodes <- 0
   normdists$Weight <- 0
   for (i in 1:nrow(normdists)){
-    dnet <- nmags[nmags$Network==paste0(normdists$network[i],".csv"),][1]
+    dnet <- nmags[nmags$Network==normdists$network[i],][1]
     normdists$Links[i] <- dnet$Links
     normdists$Nodes[i] <- dnet$NodesA+dnet$NodesB
     normdists$Weight[i] <- dnet$Weight
@@ -350,10 +354,19 @@ for (weightrf in lweightrf)
   save_corr_plots(cmn,cnn,filetext="LINKSDISTBIN_NODES")
   
   i <- 1
+  minlinks <- 300
+  for (ndist in lbinmags){
+    cnl[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Links",cutoff_links=minlinks)
+    cml[[i]] <- plot_corr_magnitude(nmags,ndist,"Links",cutoff_links=minlinks)
+    i <- i+1
+  }
+  save_corr_plots(cml,cnl,filetext=paste0("LINKSDISTBIN_LINKS_CUTOFF_",minlinks))
+
+  i <- 1
   for (ndist in lweightmags){
-    cnn[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Weight",xscale="log")
+    cnn[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Weight",yscale="log")
     cmn[[i]] <- plot_corr_magnitude(nmags,ndist,"Weight",xscale="log",yscale="log")
-    cnl[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Links",xscale="log")
+    cnl[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Links",yscale="log")
     cml[[i]] <- plot_corr_magnitude(nmags,ndist,"Links",xscale="log",yscale="log")
     i <- i+1
   }
@@ -362,7 +375,7 @@ for (weightrf in lweightrf)
   
   
   # Model comparison plots. All plots
-  lm = c("RND","NESTED")  # The first model will set the order
+  lm = c("RND","HNESTED")  # The first model will set the order
   lm = c("NETWORK","SHUFFLE","VAZ","BVAZ","BSHUFFLE",lm)
   lnetworktype = c("BINARY","WEIGHTED")
   ldisttype <- lbinmags

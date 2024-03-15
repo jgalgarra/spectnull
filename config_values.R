@@ -1,8 +1,8 @@
-debugpref <- "DEB"
+debugpref <- ""
 ppi <- 100
 options( warn = -1 )
 datadir <- "data/"
-lweightrf <- c("sqrt","ln","none")
+lweightrf <- c("none")#c("sqrt","ln","none")
 dbaseb <- "smodels/"
 odirb <- "plots/"
 rdirb <- "results/"

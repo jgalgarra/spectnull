@@ -12,8 +12,12 @@ minmaxnorm <- function(val,minv,maxv){
   }
 
 
-find_reference <- function(values_energy,mag,mod){
-  return(mean(values_energy[(values_energy$ind==mag) & (values_energy$MODEL==mod),]$values))
+find_reference <- function(values_energy,mag,model,stat="median"){
+  d <- values_energy[(values_energy$ind==mag) & (values_energy$MODEL==model),]$values
+  if (stat=="median")
+    return(median(d))
+  else
+    return(mean(d))
 }
 
 computemeandist <- function(alldistances,magnitude,netw){
@@ -36,7 +40,6 @@ for (weightrf in lweightrf)
   resultsdir <- rdir
   normresults <- paste0(rdir,"normalized/")
   dir.create(normresults, showWarnings = FALSE)
-  
   filenames <- Sys.glob(paste0(resultsdir,"MODS_*.csv"))
   lnetw <- gsub(".csv","",gsub(resultsdir,"",filenames))
   networktypes <- data.frame("network"=c(),"type"=c())
@@ -64,15 +67,14 @@ for (weightrf in lweightrf)
       adj_weighted_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="adj_weighted_energy"),]$values
       lpl_weighted_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="lpl_weighted_energy"),]$values
       spect_rad_weighted_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="spect_rad_weighted"),]$values
-  
     }
   
-    min_adj_energy <- find_reference(values_energy,"adj_energy","NESTED")
+    min_adj_energy <- find_reference(values_energy,"adj_energy","HNESTED")
     max_adj_energy <- find_reference(values_energy,"adj_energy","RND")
     min_spect_rad <- find_reference(values_energy,"spect_rad","RND")
-    max_spect_rad <- find_reference(values_energy,"spect_rad","NESTED")
+    max_spect_rad <- find_reference(values_energy,"spect_rad","HNESTED")
     min_lpl_energy <- find_reference(values_energy,"lpl_energy","RND")
-    max_lpl_energy <- find_reference(values_energy,"lpl_energy","NESTED")
+    max_lpl_energy <- find_reference(values_energy,"lpl_energy","HNESTED")
   
     if (matrixtype=="WEIGHTED"){
       min_adj_weighted_energy <- find_reference(values_energy,"adj_weighted_energy","WRND")

@@ -14,9 +14,9 @@ create_nullsinfo <- function(num_experiments){
 create_datamodels <- function(weighted_network,networkspect,pnm,pnw){
   datamod <- stack(networkspect)
   datamod$MODEL <- "NETWORK"
-  datamod <- rbind(datamod,data.frame("values"=pnm$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
-  datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="NESTED" ))
-  datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstspect_rad,"ind"="spect_rad","MODEL"="HNESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="HNESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="HNESTED" ))
   if (weighted_network){
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstspect_rad,"ind"="spect_rad_weighted","MODEL"="WNESTED" ))
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstlpl_energy,"ind"="lpl_weighted_energy","MODEL"="WNESTED" ))
@@ -148,14 +148,7 @@ WRGGAR_build <- function(empmatrix,nodes_guild_a,nodes_guild_b,num_links)
   mmatrix <- matrix(sweights,nrow=nrow(mmatrix))
   return(mmatrix)
 }
-# WRGGAR_build <- function(empmatrix,nodes_guild_a,nodes_guild_b,num_links)
-# {
-#   binmatrix <- erdosrmodel(empmatrix,nodes_guild_a,nodes_guild_b,num_links)
-#   wm <- distributeweight(binmatrix,empmatrix)
-#   return(wm)
-# }
 
-# Intercambia un porcentaje de enlaces
 
 dummynullmodel_build <- function(nodes_guild_a,nodes_guild_b,num_links,re,swap_perc)
 {
@@ -182,19 +175,19 @@ null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
   mtx <- sq_adjacency(admatrix,re$num_guild_a,re$num_guild_b)
   model_matrix <- mtx[[1]]  # binarized matrix
   model_weighted_matrix <- mtx[[2]] # original matrix
-  nullNMP_spect <- eigen(model_matrix)
+  nullNMP_spect <- eigen(model_matrix,only.values = TRUE)
   lapl_nullNMP <- 0-model_matrix
   degreesnullNMP <- rowSums(model_matrix)
   for (i in 1:nrow(lapl_nullNMP))
     lapl_nullNMP[i,i] <- degreesnullNMP[i]
-  lpl_spect_nullNMP = eigen(lapl_nullNMP)
+  lpl_spect_nullNMP = eigen(lapl_nullNMP,only.values = TRUE)
   if (weighted_network){
-    nullNMP_weighted_spect <- eigen(model_weighted_matrix)
+    nullNMP_weighted_spect <- eigen(model_weighted_matrix,only.values = TRUE)
     lapl_weighted_nullNMP <- 0-model_weighted_matrix
     nullweightedNMP <- rowSums(model_weighted_matrix)
     for (i in 1:nrow(lapl_weighted_nullNMP))
       lapl_weighted_nullNMP[i,i] <- nullweightedNMP[i]
-    lpl_weighted_spect_nullNMP = eigen(lapl_weighted_nullNMP)
+    lpl_weighted_spect_nullNMP = eigen(lapl_weighted_nullNMP,only.values = TRUE)
   } else {
     lpl_weighted_spect_nullNMP = lpl_spect_nullNMP
   }
@@ -242,16 +235,16 @@ binarize_matrix <- function(m){
 
 sq_adjacency <- function(rmatrix, num_guild_a, num_guild_b)#, normalize=TRUE)
 {
-  z_matrix <- matrix(0, ncol = num_guild_b, nrow = num_guild_b)
-  incidmatrix <- cbind(rmatrix,z_matrix)
-  colnames(incidmatrix)<-NULL
-  rownames(incidmatrix)<-NULL
-  z_matrix <- matrix(0, ncol = num_guild_a, nrow = num_guild_a)
-  incidmatrix <- rbind(cbind(z_matrix,t(incidmatrix[,1:num_guild_a])),incidmatrix)
-  binarized_incidmatrix <- incidmatrix
-  if (max(incidmatrix)>1)
-    binarized_incidmatrix[incidmatrix>1]=1
-  return(list(binarized_incidmatrix, incidmatrix))  # They are equal for binary networks
+  zmatrix <- matrix(0, ncol = num_guild_a+num_guild_b, nrow = num_guild_a+num_guild_b)
+  zmatrix[1:num_guild_b,(num_guild_b+1):(num_guild_b+num_guild_a)]<-rmatrix
+  
+  zmatrix[(num_guild_b+1):(num_guild_a+num_guild_b),1:num_guild_b]<-t(rmatrix)
+  colnames(zmatrix)<-NULL
+  rownames(zmatrix)<-NULL
+  binarized_zmatrix <- zmatrix
+  if (max(zmatrix)>1)
+    binarized_zmatrix[zmatrix>1]=1
+  return(list(binarized_zmatrix, zmatrix))  # They are equal for binary networks
 }
 
 store_model_results <- function(dp,num_links,num_nodes,magnitudes,weighted){
@@ -339,56 +332,101 @@ find_model_fully_connected <- function(matrix){
   return(calc_values)
 }
 
-area_triangle <- function(base)
-{
-  area <- base*(base+1)/2
-}
+
 
 basetriangle <- function(area){
-  # area <- base * (base+1) / 2 -> b = (-1 + sqrt(1+8*area))/2
-  return((-1 + sqrt(1+8*area))/2)
+  return((-1 + sqrt(1+8*area))/2)  # Solution of b^2 + b - 2area = 0
+}
+area_triangle <- function(base){
+  return(base*(base+1)/2)
 }
 
 create_bin_nested_model <- function(na,nb,nlinks){
-  if (na < nb ){
-    nr <- na
-    nc <- nb
-  } else {
+  if (nlinks > na*nb)
+    stop("FATAL ERROR. Number of links greater than product of number of species")
+  if (na > nb ){
     nr <- nb
     nc <- na
+  } else {
+    nr <- na
+    nc <- nb
   }
   rnl <- nlinks
+  if (nc*nr==nlinks){  # Full connected network
+    nmatrix <-  matrix(rep(1,nc*nr), nrow = nr, ncol = nc)
+    return(nmatrix)
+  }
+  sqdim <- min(nr,nc)
   nmatrix <-  matrix(rep(0,nc*nr), nrow = nr, ncol = nc)
-  nmatrix[,1] <- 1
-  nmatrix[1,] <- 1
-  rnl <- rnl - nr - nc +1
-  
-  baset <- floor(basetriangle(rnl))
+  nmatrix[1,]<-1
+  nmatrix[,1]<-1
+  rnl <- rnl - sum(nmatrix)
+  minleft <- max(nr,nc)-sum(nmatrix[1,]) # Minimum number of tokens to fill row1
+  baset <- floor(basetriangle(rnl-minleft))
   baset <- min(nr-2,baset)
   tokenst <- area_triangle(baset)
-  
+
   for (i in 1:baset){
     for (j in 1:(baset-i+1))
-      nmatrix[1+i,1+j] <- 1
+      if (rnl>0){
+        nmatrix[1+i,1+j] <- 1
+        rnl <- rnl - 1
+      }
   }
-  rnl <- rnl - tokenst
-  rad <- 2
-  cad <- baset+2
+  if (minleft>0)
+    rowfill <- 1
+  else
+    rowfill <- 2
+  colfill <- which(nmatrix[rowfill,]==0)[1]
   while(rnl>0){
-    nmatrix[rad,cad] <- 1
+    nmatrix[rowfill,colfill] <- 1
     rnl <- rnl -1
     if (rnl==0)
       break
-    if (cad < nc-(rad-1))
-      cad <- cad + 1
+    # Fill the symmetrical if it's not the last row
+    if (colfill <= nr-(rowfill-1)){
+      if (nmatrix[colfill,rowfill]==0){
+        nmatrix[colfill,rowfill]<-1
+        rnl <- rnl - 1
+      }
+    }
+    if (rowfill==nr){
+      rowfill <- 2
+      while (is.na(which(nmatrix[rowfill,]==0)[1])){
+        rowfill <- rowfill + 1
+      }
+      colfill <- which(nmatrix[rowfill,]==0)[1]
+    }
+    else if (colfill < nc-(rowfill-1))
+      colfill <- colfill + 1
     else{
-      rad <- rad + 1
-      cad <- which(nmatrix[rad,]==0)[1]
+      rowfill <- rowfill + 1
+      colfill <- which(nmatrix[rowfill,]==0)[1]
     }
   }
   if(na<nb)
     nmatrix <- t(nmatrix)
   return(nmatrix)
+}
+
+create_hypernested_model <- function(na,nb,links){
+  if (na > nb ){
+    nr <- nb
+    nc <- na
+  } else {
+    nr <- na
+    nc <- nb
+  }
+  mhyp <- matrix(rep(0,(nr*nc)),nrow=nr,ncol=nc)
+  mhyp[1,]<-1
+  mhyp[,1]<-1
+  munos <- rep(1,links-sum(mhyp))
+  munos<-matrix(c(munos,rep(0,(nr-1)*(nc-1)-sum(munos))),nrow=nr-1,ncol=nc-1,byrow = T)
+  mhyp[2:nr,2:nc]<-munos
+  print(paste("nrwo",nrow(mhyp),"ncol",ncol(mhyp)))
+  if (ncol(mhyp)>nrow(mhyp))
+    mhyp=t(mhyp)
+  return(mhyp)
 }
 
 create_weighted_nested_model <- function(na,nb,nlinks,trfmatrix){
@@ -466,9 +504,11 @@ remove_model_data <- function(m,mod){
 
 process_nested_model_bin <- function(nodes_a,nodes_b,num_links){
   num_nodes <- nodes_a + nodes_b
-  nstmodel <- create_bin_nested_model(nodes_a,nodes_b,num_links)
-  nstmtx <- sq_adjacency(nstmodel, nodes_a, nodes_b)
-  nstadj_sq_matrix <- nstmtx[[1]]  # binarized matrix
+  nstmodel <- create_hypernested_model(nodes_a,nodes_b,num_links)#create_bin_nested_model(nodes_a,nodes_b,num_links)
+  if (nodes_a>nodes_b)
+    nstadj_sq_matrix <- sq_adjacency(nstmodel, nodes_b, nodes_a)[[1]]  # binarized matrix
+  else
+    nstadj_sq_matrix <- sq_adjacency(nstmodel, nodes_a, nodes_b)[[1]]  # binarized matrix
   nstadj_spect <- eigen(nstadj_sq_matrix)
   nstspect_rad <- nstadj_spect$values[1]
   print(sprintf("Nested model spectral radius %.2f",nstspect_rad))
@@ -490,7 +530,7 @@ process_nested_model_weighted <- function(nodes_a,nodes_b,num_links,trfmatrix){
   weightednstmodel <- create_weighted_nested_model(nodes_a,nodes_b,num_links,trfmatrix)
   weightednstmtx <- sq_adjacency(weightednstmodel, nodes_a, nodes_b)
   weightednstadj_sq_matrix <- weightednstmtx[[2]] 
-  weightednstadj_spect <- eigen(weightednstadj_sq_matrix)
+  weightednstadj_spect <- eigen(weightednstadj_sq_matrix,only.values = TRUE)
   weightednstspect_rad <- weightednstadj_spect$values[1]
   print(sprintf("Weighted nested model spectral radius %.2f",weightednstspect_rad))
   weightednstadj_energy <- AdjweightedEnergy(weightednstadj_spect$values)
