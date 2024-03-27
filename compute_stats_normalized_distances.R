@@ -46,12 +46,14 @@ for (weightrf in lweightrf)
     mdistadj <- computemeandist(alldistances,"adj_energy",netw)
     mdistlpl <- computemeandist(alldistances,"lpl_energy",netw)
     mdistspect <- computemeandist(alldistances,"spect_rad",netw)
-    meandist <- rbind(meandist,mdistalgcon,mdistadj,mdistlpl,mdistspect)
+    mdistlplspect <- computemeandist(alldistances,"lpl_spect_rad",netw)
+    meandist <- rbind(meandist,mdistalgcon,mdistadj,mdistlpl,mdistspect,mdistlplspect)
     if (ntype$type=="WEIGHTED"){
       mdistadj <- computemeandist(alldistances,"adj_weighted_energy",netw)
       mdistlpl <- computemeandist(alldistances,"lpl_weighted_energy",netw)
       mdistspect <- computemeandist(alldistances,"spect_rad_weighted",netw)
-      meandist <- rbind(meandist,mdistadj,mdistlpl,mdistspect)
+      mdistlplspect <- computemeandist(alldistances,"lpl_spect_rad_weighted",netw)
+      meandist <- rbind(meandist,mdistadj,mdistlpl,mdistspect,mdistlplspect)
     }
     meandist <- meandist[!duplicated(meandist),]
   }
@@ -103,22 +105,26 @@ for (weightrf in lweightrf)
         corrdata$links <- 0
         corrdata$nodes <- 0
         corrdata$weight <- 0
+        corrdata$connectance <- 0
         for (i in 1:nrow(corrdata)){
          dfn <- networkmags[networkmags$Network==corrdata$network[i],]
          corrdata[i,]$links <- dfn$Links[1]
          corrdata[i,]$nodes <- dfn$NodesA[1]+dfn$NodesB[1]
          corrdata[i,]$weight <- dfn$Weight[1]
+         corrdata[i,]$connectance <- dfn$Connectance[1]
         }
         mycorrlinks <- cor(corrdata$meannormdist,corrdata$links,method = "spearman")
         mycorrnodes <- cor(corrdata$meannormdist,corrdata$nodes,method = "spearman")
         mycorrweight <- cor(corrdata$meannormdist,corrdata$weight,method = "spearman")
+        mycorrconnectance <- cor(corrdata$meannormdist,corrdata$connectance,method = "spearman")
         
         if (!is.na(mycorrlinks))
           datacorr <- rbind(datacorr,data.frame("disttype"=disttype,"model"=model,
                                                 "nclass"=nclass,
                                                 "corrlinks"=mycorrlinks,
                                                 "corrnodes"=mycorrnodes,
-                                                "corrweight"=mycorrweight))
+                                                "corrweight"=mycorrweight,
+                                                "corrconnectance"=mycorrconnectance))
       }
     }
   }

@@ -10,8 +10,8 @@ minmaxnorm <- function(val,minv,maxv){
   }
 
 
-find_reference <- function(values_energy,mag,model,stat="median"){
-  d <- values_energy[(values_energy$ind==mag) & (values_energy$MODEL==model),]$values
+find_reference <- function(values_magnitudes,mag,model,stat="mean"){
+  d <- values_magnitudes[(values_magnitudes$ind==mag) & (values_magnitudes$MODEL==model),]$values
   if (stat=="median")
     return(median(d))
   else
@@ -31,6 +31,11 @@ computemeandist <- function(alldistances,magnitude,netw){
   }
   return(meandist)
 }
+
+getvaluesmagnitude <- function(dfvalues,model,magnitude){
+  return(dfvalues[(dfvalues$MODEL==model) & (dfvalues$ind==magnitude),]$values)
+}
+
 for (weightrf in lweightrf)
 {
   print(paste("Transformation",weightrf))
@@ -53,67 +58,85 @@ for (weightrf in lweightrf)
     networktypes <- rbind(networktypes,data.frame("network"=nname,"type"=matrixtype))
     print(netw)
     values_network <- fread(paste0(resultsdir,netw,".csv"))
+    nlinks <- sum(nmatrix>0)
     if (matrixtype=="WEIGHTED")
-      values_energy <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","spect_rad","lpl_weighted_energy","adj_weighted_energy","spect_rad_weighted","algebraic_connectivity"),]
+      values_magnitudes <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","spect_rad","lpl_spect_rad","lpl_weighted_energy","adj_weighted_energy","lpl_spect_rad_weighted","spect_rad_weighted","algebraic_connectivity"),]
     else
-      values_energy <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","spect_rad"),]
-    models <- unique(values_energy$MODEL)
-    adj_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="adj_energy"),]$values
-    lpl_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="lpl_energy"),]$values
-    spect_rad_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="spect_rad"),]$values
+      values_magnitudes <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","lpl_spect_rad","spect_rad"),]
+    models <- unique(values_magnitudes$MODEL)
+    adj_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","adj_energy")
+    lpl_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","lpl_energy")
+    spect_rad_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","spect_rad")
+    lpl_spect_rad_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","lpl_spect_rad")
+    
     if (matrixtype=="WEIGHTED"){
-      adj_weighted_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="adj_weighted_energy"),]$values
-      lpl_weighted_energy_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="lpl_weighted_energy"),]$values
-      spect_rad_weighted_empirical <- values_energy[(values_energy$MODEL=="NETWORK") & (values_energy$ind=="spect_rad_weighted"),]$values
+      adj_weighted_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","adj_weighted_energy")
+      lpl_weighted_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","lpl_weighted_energy")
+      spect_rad_weighted_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","spect_rad_weighted")
+      lpl_spect_rad_weighted_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","lpl_spect_rad_weighted")
+      
     }
   
-    min_adj_energy <- find_reference(values_energy,"adj_energy","HNESTED")
-    max_adj_energy <- find_reference(values_energy,"adj_energy","RND")
-    min_spect_rad <- find_reference(values_energy,"spect_rad","RND")
-    max_spect_rad <- find_reference(values_energy,"spect_rad","HNESTED")
-    min_lpl_energy <- find_reference(values_energy,"lpl_energy","RND")
-    max_lpl_energy <- find_reference(values_energy,"lpl_energy","HNESTED")
+    min_adj_energy <- find_reference(values_magnitudes,"adj_energy","HNESTED")
+    max_adj_energy <- find_reference(values_magnitudes,"adj_energy","RND")
+    min_spect_rad <- find_reference(values_magnitudes,"spect_rad","RND")
+    max_spect_rad <- find_reference(values_magnitudes,"spect_rad","HNESTED")
+    # Máximo teórico sqrt(nlinks)
+    min_lpl_spect_rad <- find_reference(values_magnitudes,"lpl_spect_rad","RND")
+    max_lpl_spect_rad <- find_reference(values_magnitudes,"lpl_spect_rad","HNESTED")
+    min_lpl_energy <- find_reference(values_magnitudes,"lpl_energy","RND")
+    max_lpl_energy <- find_reference(values_magnitudes,"lpl_energy","HNESTED")
   
     if (matrixtype=="WEIGHTED"){
-      min_adj_weighted_energy <- find_reference(values_energy,"adj_weighted_energy","WRND")
-      max_adj_weighted_energy <- find_reference(values_energy,"adj_weighted_energy","WNESTED")
-      min_spect_rad_weighted <- find_reference(values_energy,"spect_rad_weighted","WRND")
-      max_spect_rad_weighted <- find_reference(values_energy,"spect_rad_weighted","WNESTED")
-      min_lpl_weighted_energy <- find_reference(values_energy,"lpl_weighted_energy","WRND")
-      max_lpl_weighted_energy <- find_reference(values_energy,"lpl_weighted_energy","WNESTED")
+      min_adj_weighted_energy <- find_reference(values_magnitudes,"adj_weighted_energy","WRND")
+      max_adj_weighted_energy <- find_reference(values_magnitudes,"adj_weighted_energy","WNESTED")
+      min_spect_rad_weighted <- find_reference(values_magnitudes,"spect_rad_weighted","WRND")
+      max_spect_rad_weighted <- find_reference(values_magnitudes,"spect_rad_weighted","WNESTED")
+      min_lpl_spect_rad_weighted <- find_reference(values_magnitudes,"lpl_spect_rad_weighted","WRND")
+      max_lpl_spect_rad_weighted <- find_reference(values_magnitudes,"lpl_spect_rad_weighted","WNESTED")
+      min_lpl_weighted_energy <- find_reference(values_magnitudes,"lpl_weighted_energy","WRND")
+      max_lpl_weighted_energy <- find_reference(values_magnitudes,"lpl_weighted_energy","WNESTED")
     }
   
   
     adj_energy_empirical_norm <- minmaxnorm(adj_energy_empirical,min_adj_energy,max_adj_energy)
     lpl_energy_empirical_norm <- minmaxnorm(lpl_energy_empirical,min_lpl_energy,max_lpl_energy)
     spect_rad_empirical_norm <- minmaxnorm(spect_rad_empirical,min_spect_rad,max_spect_rad)
+    lpl_spect_rad_empirical_norm <- minmaxnorm(lpl_spect_rad_empirical,min_lpl_spect_rad,max_lpl_spect_rad)
     if (matrixtype=="WEIGHTED"){
       adj_weighted_energy_empirical_norm <- minmaxnorm(adj_weighted_energy_empirical,min_adj_weighted_energy,max_adj_weighted_energy)
       lpl_weighted_energy_empirical_norm <- minmaxnorm(lpl_weighted_energy_empirical,min_lpl_weighted_energy,max_lpl_weighted_energy)
       spect_rad_weighted_empirical_norm <- minmaxnorm(spect_rad_weighted_empirical,min_spect_rad_weighted,max_spect_rad_weighted)
+      lpl_spect_rad_weighted_empirical_norm <- minmaxnorm(lpl_spect_rad_weighted_empirical,min_lpl_spect_rad_weighted,max_lpl_spect_rad_weighted)
     }
   
-    norm_values_energy <- values_energy
-    norm_values_energy$normdist <- 0
-    for (i in 1:nrow(norm_values_energy)){
-      if (norm_values_energy$ind[i]=="algebraic_connectivity")
-        norm_values_energy$normdist[i] = norm_values_energy$values[i]
-      if (norm_values_energy$ind[i]=="adj_energy")
-        norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_adj_energy,max_adj_energy)
-      if (norm_values_energy$ind[i]=="lpl_energy")
-        norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_lpl_energy,max_lpl_energy)
-      if (norm_values_energy$ind[i]=="spect_rad")
-        norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_spect_rad,max_spect_rad)
+    norm_values_magnitudes <- values_magnitudes
+    norm_values_magnitudes$normdist <- 0
+    for (i in 1:nrow(norm_values_magnitudes)){
+      if (norm_values_magnitudes$ind[i]=="algebraic_connectivity")
+        norm_values_magnitudes$normdist[i] = norm_values_magnitudes$values[i]
+      if (norm_values_magnitudes$ind[i]=="adj_energy")
+        norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_adj_energy,max_adj_energy)
+      if (norm_values_magnitudes$ind[i]=="lpl_energy")
+        norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_lpl_energy,max_lpl_energy)
+      if (norm_values_magnitudes$ind[i]=="spect_rad")
+        norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_spect_rad,max_spect_rad)
+      if (norm_values_magnitudes$ind[i]=="lpl_spect_rad")
+        norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_lpl_spect_rad,max_lpl_spect_rad)
+      
       if (matrixtype=="WEIGHTED"){
-        if (norm_values_energy$ind[i]=="adj_weighted_energy")
-          norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_adj_weighted_energy,max_adj_weighted_energy)
-        if (norm_values_energy$ind[i]=="lpl_weighted_energy")
-          norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_lpl_weighted_energy,max_lpl_weighted_energy)
-        if (norm_values_energy$ind[i]=="spect_rad_weighted")
-          norm_values_energy$normdist[i] = minmaxnorm(norm_values_energy$values[i],min_spect_rad_weighted,max_spect_rad_weighted)
+        if (norm_values_magnitudes$ind[i]=="adj_weighted_energy")
+          norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_adj_weighted_energy,max_adj_weighted_energy)
+        if (norm_values_magnitudes$ind[i]=="lpl_weighted_energy")
+          norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_lpl_weighted_energy,max_lpl_weighted_energy)
+        if (norm_values_magnitudes$ind[i]=="spect_rad_weighted")
+          norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_spect_rad_weighted,max_spect_rad_weighted)
+        if (norm_values_magnitudes$ind[i]=="lpl_spect_rad_weighted")
+          norm_values_magnitudes$normdist[i] = minmaxnorm(norm_values_magnitudes$values[i],min_lpl_spect_rad_weighted,max_lpl_spect_rad_weighted)
+        
       }
     }
-    fwrite(norm_values_energy,paste0(normresults,"MINMAX_",netw,".csv"),row.names=FALSE)
+    fwrite(norm_values_magnitudes,paste0(normresults,"MINMAX_",netw,".csv"),row.names=FALSE)
   }
   fwrite(networktypes,paste0(normresults,"networktypes.csv"),row.names=FALSE)
   

@@ -3,10 +3,12 @@
 create_nullsinfo <- function(num_experiments){
   nullsinfo <- data.frame("spect_rad"=replicate(num_experiments,INCOMPLETE_MODEL_VALUE))
   nullsinfo$adj_energy <- INCOMPLETE_MODEL_VALUE
+  nullsinfo$lpl_spect_rad <- INCOMPLETE_MODEL_VALUE
   nullsinfo$lpl_energy <- INCOMPLETE_MODEL_VALUE
   nullsinfo$algebraic_connectivity <- INCOMPLETE_MODEL_VALUE
   nullsinfo$spect_rad_weighted <- INCOMPLETE_MODEL_VALUE
   nullsinfo$adj_weighted_energy <- INCOMPLETE_MODEL_VALUE
+  nullsinfo$lpl_spect_rad_weighted <- INCOMPLETE_MODEL_VALUE
   nullsinfo$lpl_weighted_energy <- INCOMPLETE_MODEL_VALUE
   return(nullsinfo)
 }
@@ -15,14 +17,17 @@ create_datamodels <- function(weighted_network,networkspect,pnm,pnms,pnw){
   datamod <- stack(networkspect)
   datamod$MODEL <- "NETWORK"
   datamod <- rbind(datamod,data.frame("values"=pnm$nstspect_rad,"ind"="spect_rad","MODEL"="HNESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstlpl_energy,"ind"="lpl_energy","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstadj_energy,"ind"="adj_energy","MODEL"="NESTED" ))
   
   if (weighted_network){
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstspect_rad,"ind"="spect_rad_weighted","MODEL"="WNESTED" ))
+    datamod <- rbind(datamod,data.frame("values"=pnw$weightednstlplspect_rad,"ind"="lpl_spect_rad_weighted","MODEL"="WNESTED" ))
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstlpl_energy,"ind"="lpl_weighted_energy","MODEL"="WNESTED" ))
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstadj_energy,"ind"="adj_weighted_energy","MODEL"="WNESTED" ))
   }
@@ -197,29 +202,34 @@ null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
   }
   spect_rad_nulls_NMP <- nullNMP_spect$values[1]
   adj_energy_nulls_NMP <- AdjEnergy(nullNMP_spect$values)
+  lpl_spect_rad_nulls_NMP <- lpl_spect_nullNMP$values[1]
   lpl_energy_nulls_NMP <- LaplEnergy(lpl_spect_nullNMP$values,num_links,num_nodes)
   algebraic_connectivity_nulls_NMP <- lpl_spect_nullNMP$values[length(lpl_spect_nullNMP$values)-1]
   if (weighted_network){
     spect_rad_weighted_nulls_NMP <- nullNMP_weighted_spect$values[1]
+    lpl_spect_rad_weighted_nulls_NMP <- lpl_spect_nullNMP$values[1]
     lpl_weighted_energy_nulls_NMP <- LaplweightedEnergy(lpl_spect_nullNMP$values,num_links,num_nodes)
     adj_weighted_energy_nulls_NMP <- AdjweightedEnergy(nullNMP_weighted_spect$values)
   } 
   
-  nested_values <- nested(as.matrix(admatrix), c("NODF","wine"))
+  nested_values <- nested(as.matrix(admatrix), c("NODF","wine","binmatnest"))
   if (!weighted_network)
     calc_values <- list("model_matrix" = model_matrix,
                         "null_spect" = nullNMP_spect,
                         "lpl_spect_nulls" = lpl_spect_nullNMP,
                         "spect_rad_nulls" = spect_rad_nulls_NMP,
                         "adj_energy_nulls" = adj_energy_nulls_NMP,
+                        "lpl_spect_rad_nulls" = lpl_spect_rad_nulls_NMP,
                         "lpl_energy_nulls" = lpl_energy_nulls_NMP,
                         "algebraic_connectivity_nulls" = algebraic_connectivity_nulls_NMP,
-                        "NODF"=nested_values["NODF"],"wine"=nested_values["wine"])
+                        "NODF"=nested_values["NODF"],"wine"=nested_values["wine"],
+                        "binmatnest.temperature"=nested_values["binmatnest.temperature"])
   else
     calc_values <- list("model_matrix" = model_matrix,
                         "null_spect" = nullNMP_spect,
                         "lpl_spect_nulls" = lpl_spect_nullNMP,
                         "spect_rad_nulls" = spect_rad_nulls_NMP,
+                        "lpl_spect_rad_nulls" = lpl_spect_rad_nulls_NMP,
                         "adj_energy_nulls" = adj_energy_nulls_NMP,
                         "lpl_energy_nulls" = lpl_energy_nulls_NMP,
                         "algebraic_connectivity_nulls" = algebraic_connectivity_nulls_NMP,
@@ -227,8 +237,11 @@ null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
                         "lpl_weighted_spect_nulls" = lpl_weighted_spect_nullNMP,
                         "spect_rad_weighted_nulls" = spect_rad_weighted_nulls_NMP,
                         "adj_weighted_energy_nulls" = adj_weighted_energy_nulls_NMP,
+                        "lpl_spect_rad_weighted_nulls" = lpl_spect_rad_weighted_nulls_NMP,
                         "lpl_weighted_energy_nulls" = lpl_weighted_energy_nulls_NMP,
-                        "NODF"=nested_values["NODF"],"wine"=nested_values["wine"])
+                        "NODF"=nested_values["NODF"],"wine"=nested_values["wine"],
+                        "binmatnest.temperature"=nested_values["binmatnest.temperature"]
+                        )
   return(calc_values)
 }
 
@@ -251,21 +264,33 @@ sq_adjacency <- function(rmatrix, num_guild_a, num_guild_b)#, normalize=TRUE)
   return(list(binarized_zmatrix, zmatrix))  # They are equal for binary networks
 }
 
+create_laplacian_matrix <- function(adj_sq_matrix){
+  lapl_matrix <- 0-adj_sq_matrix
+  weights <- rowSums(adj_sq_matrix)
+  for (i in 1:nrow(lapl_matrix))
+    lapl_matrix[i,i] <- weights[i]
+  return(lapl_matrix)
+}
+
+
 store_model_results <- function(dp,num_links,num_nodes,magnitudes,weighted){
   mr <- replicate(length(magnitudes),c())
   names(mr) <- magnitudes
   mr$spect_rad <- dp$null_spect$values[1]
   mr$adj_energy <- AdjEnergy(dp$null_spect$values)
+  mr$lpl_spect_rad <- dp$lpl_spect_nulls$values[1]
   mr$lpl_energy <- LaplEnergy(dp$lpl_spect_nulls$values,num_links,num_nodes)
   mr$algebraic_connectivity <- dp$lpl_spect_nulls$values[length(dp$lpl_spect_nulls$values)-1]
   if (weighted){
     mr$spect_rad_weighted <- dp$null_weighted_spect$values[1]
     mr$adj_weighted_energy <- AdjweightedEnergy(dp$null_weighted_spect$values)
+    mr$lpl_spect_rad_weighted <- dp$lpl_weighted_spect_nulls$values[1]
     mr$lpl_weighted_energy <- LaplweightedEnergy(dp$lpl_weighted_spect_nulls$values,num_links,num_nodes)
   }
   else{
     mr$spect_rad_weighted <- INCOMPLETE_MODEL_VALUE
     mr$adj_weighted_energy <- INCOMPLETE_MODEL_VALUE
+    mr$lpl_spect_rad_weighted <- INCOMPLETE_MODEL_VALUE
     mr$lpl_weighted_energy <- INCOMPLETE_MODEL_VALUE
   }
   return(as.data.frame(mr))
@@ -421,6 +446,10 @@ create_hypernested_model <- function(na,nb,links){
     nr <- na
     nc <- nb
   }
+  if (nc*nr==links){  # Full connected network
+    mhyp <-  matrix(rep(1,nc*nr), nrow = nr, ncol = nc)
+    return(mhyp)
+  }
   mhyp <- matrix(rep(0,(nr*nc)),nrow=nr,ncol=nc)
   mhyp[1,]<-1
   mhyp[,1]<-1
@@ -519,17 +548,19 @@ process_nested_model_bin <- function(nodes_a,nodes_b,num_links,hypernested=TRUE)
 
   nstadj_spect <- eigen(nstadj_sq_matrix,only.values = TRUE)
   nstspect_rad <- nstadj_spect$values[1]
-  print(sprintf("%s Nested model spectral radius %.2f",pref,nstspect_rad))
+  secondratio <-  -log10(nstadj_spect$values[2]/nstspect_rad)
+  print(sprintf("%s Nested model spectral radius %.2f Second ratio %.2f",pref,nstspect_rad,secondratio))
   nstadj_energy <- AdjEnergy(nstadj_spect$values)
   nstlapl_matrix <- 0-nstadj_sq_matrix
   nstsumweights <- rowSums(nstadj_sq_matrix)
   for (i in 1:nrow(nstlapl_matrix))
     nstlapl_matrix[i,i] <- nstsumweights[i]
   nstlpl_spect = eigen(nstlapl_matrix,only.values = TRUE)
+  nstlplspect_rad <- nstlpl_spect$values[1]
   nstlpl_energy <- LaplEnergy(nstlpl_spect$values,sum(nstmodel>0),num_nodes)
-  nnst <- nested(as.matrix(nstmodel), "ALL")
+  nnst <- nested(as.matrix(nstmodel), c("NODF","wine","binmatnest"))
   calc_values <- list("nstmodel"=nstmodel,"nnst"=nnst,"nstadj_spect" = nstadj_spect, "nstspect_rad" = nstspect_rad,
-                      "nstadj_energy" = nstadj_energy, "nstlpl_spect"=nstlpl_spect, "nstlpl_energy" = nstlpl_energy)
+                      "nstadj_energy" = nstadj_energy, "nstlpl_spect"=nstlpl_spect,"nstlplspect_rad"=nstlplspect_rad, "nstlpl_energy" = nstlpl_energy)
   return(calc_values)
 }
 
@@ -551,13 +582,14 @@ process_nested_model_weighted <- function(nodes_a,nodes_b,num_links,trfmatrix){
   for (i in 1:nrow(weightednstlapl_matrix))
     weightednstlapl_matrix[i,i] <- nstsumweights[i]
   weightednstlpl_spect <- eigen(weightednstlapl_matrix)
+  weightednstlplspect_rad <- weightednstlpl_spect$values[1]
   weightednstlpl_energy <- LaplweightedEnergy(weightednstlpl_spect$values,
                                               sum(weightednstmodel>0),num_nodes)
-  weightednnst <- nested(as.matrix(weightednstmodel), "ALL")
+  weightednnst <- nested(as.matrix(weightednstmodel), c("NODF","wine","binmatnest"))
   calc_values <- list("weightednstmodel"=weightednstmodel,"weightednnst"=weightednnst,
                       "weightednstadj_spect" = weightednstadj_spect, "weightednstspect_rad" = weightednstspect_rad,
                       "weightednstadj_energy" = weightednstadj_energy, "weightednstlpl_spect"=weightednstlpl_spect, 
-                      "weightednstlpl_energy" = weightednstlpl_energy)
+                      "weightednstlplspect_rad"=weightednstlplspect_rad, "weightednstlpl_energy" = weightednstlpl_energy)
   return(calc_values)
 }
 
@@ -591,3 +623,305 @@ save_null_model <- function(netname,dirn,incidmatrix,nullname,adj_spect_val,lpl_
   spectra[abs(spectra)<0.000000001]<-0
   write.csv(spectra,paste0(dirnulls,filenullspect),row.names=FALSE)
 }
+
+LaplweightedEnergy <- function(eigenvalues,num_links,num_nodes){
+  return(sum(eigenvalues^2))
+}
+
+LaplEnergy <- function(eigenvalues,num_links,num_nodes){
+  return(sum(abs(eigenvalues-2*num_links/num_nodes)))
+}
+
+AdjEnergy <- function(eigenvalues){
+  return(sum(abs(eigenvalues)))
+}
+
+AdjweightedEnergy <- function(eigenvalues){
+  return(sum(eigenvalues^2))
+  #return(sum(abs(eigenvalues)))
+}
+
+store_spect_values <- function(val,typem){
+  return(data.frame("val"=val,"ind"=seq(1:length(val)),"type" = typem))
+}
+
+create_networkspect_dataframe <- function(weighted_network,bm,wm){
+  if(weighted_network)
+    networkspect <- list("spect_rad"=bm$adj_spect$values[1],
+                         "adj_energy"=bm$adj_energy,
+                         "lpl_spect_rad"=bm$lpl_spect$values[1],
+                         "lpl_energy"=bm$lpl_energy,
+                         "algebraic_connectivity"=bm$lpl_spect$values[length(bm$lpl_spect$values)-1],
+                         "spect_rad_weighted"=wm$adj_weighted_spect$values[1],
+                         "lpl_spect_rad_weighted"=wm$lpl_weighted_spect$values[1],
+                         "adj_weighted_energy"=wm$adj_weighted_energy,
+                         "lpl_weighted_energy"=wm$lpl_weighted_energy)
+  else
+    networkspect <- list("spect_rad"=bm$adj_spect$values[1],
+                         "adj_energy"=bm$adj_energy,
+                         "lpl_spect_rad"=bm$lpl_spect$values[1],
+                         "lpl_energy"=bm$lpl_energy,
+                         "algebraic_connectivity"=bm$lpl_spect$values[length(bm$lpl_spect$values)-1],
+                         "spect_rad_weighted"=-1,
+                         "adj_weighted_energy"=-1,
+                         "lpl_spect_rad_weighted"=-1,
+                         "lpl_weighted_energy"=-1)
+  return(networkspect)
+}
+
+# Updates Networ magnitudes file
+store_network_magnitudes_global_file <- function(netw,nnm){
+  # Write Network magnitudes to global results file
+  network_data <- data.frame("Network"=gsub(".csv","",netw),"Weighted"=nnm$weighted_network,
+                             "NodesA"=nnm$nodes_a,"NodesB"=nnm$nodes_b,"Links"=nnm$num_links,
+                             "Weight"=nnm$network_total_weight,"Model"="NETWORK")
+  network_values <- cbind(network_data,as.data.frame(nnm$networkspect))
+  
+  network_values <- rbind(network_values,network_values)
+  network_values[2,]$Model = "HNESTED"
+  network_values[2,which(names(network_values)=="spect_rad"):length(names(network_values))] = INCOMPLETE_MODEL_VALUE
+  network_values <- rbind(network_values,network_values[2,])
+  nested_df <- nnm$datamod[nnm$datamod$MODEL=="HNESTED",]
+  for (i in nested_df$ind)
+    network_values[2,][i] <- nested_df[nested_df$ind==i,]$values
+  network_values[3,]$Model = "WNESTED"
+  nested_df <- nnm$datamod[nnm$datamod$MODEL=="WNESTED",]
+  for (i in nested_df$ind)
+    network_values[3,][i] <- nested_df[nested_df$ind==i,]$values
+  for (modelname in nnm$mnames){
+    network_null <- cbind(network_data,as.data.frame(lapply(nnm$modresults[[modelname]],mean)) )
+    network_null$Model <- modelname
+    network_values <- rbind(network_values,network_null)
+  }
+  network_values$Connectance <- 0
+  for (k in 1:nrow(network_values))
+    network_values$Connectance[k] = network_values$Links[k]/(network_values$NodesA[k]*network_values$NodesB[k])
+  NFile <- paste0(rdir,NetworkMagsFile)
+  if (file.exists(NFile)){
+    NMags <- read.csv(NFile)
+    NMags <- NMags[NMags$Network!=netw,]
+    NMags <- rbind(NMags,network_values)
+  } 
+  #else       
+  #   NMags <- network_values
+
+  if (!plotzigs)
+    write.csv(NMags,NFile,row.names = FALSE)
+}
+
+compute_bin_magnitudes <- function(result_analysis,matrix,network_nested_values,nodes_a,nodes_b,num_links,num_nodes,dfnested){
+  dfnested <- rbind(dfnested,data.frame("network"=netw,"model"="NETWORK",
+                                        "NODF"=network_nested_values["NODF"],
+                                        "wine"=network_nested_values["wine"],
+                                        "binmatnest.temperature"=network_nested_values["binmatnest.temperature"],
+                                        "links"=result_analysis$links,"totalweight"=sum(matrix)))
+  
+  mtx <- sq_adjacency(matrix, nodes_a, nodes_b)
+  adj_sq_matrix <- mtx[[1]]  # binarized matrix
+  adj_sq_weighted_matrix <- mtx[[2]] # original matrix, both are equal if the network is binary
+  adj_spect <- eigen(adj_sq_matrix)
+  adj_energy <- AdjEnergy(adj_spect$values)
+  print(sprintf("Sum adjacency spectrum^2 %.2f Energy %.2f",sum((adj_spect$values)^2),adj_energy))
+  
+  lapl_matrix <- create_laplacian_matrix(adj_sq_matrix)
+  lpl_spect = eigen(lapl_matrix)
+  lpl_energy <- LaplEnergy(lpl_spect$values,num_links,num_nodes)
+  print(sprintf("Sum Laplacian spectrum %.2f",sum(lpl_spect$values)))
+  calc_values <- list("adj_spect"=adj_spect,"adj_energy"=adj_energy,"lpl_spect"=lpl_spect,
+                      "lpl_energy"=lpl_energy,"adj_sq_matrix"=adj_sq_matrix,
+                      "adj_sq_weighted_matrix"=adj_sq_weighted_matrix,
+                      "lapl_matrix"=lapl_matrix,"dfnested"=dfnested)
+  return(calc_values)
+}
+
+compute_weighted_magnitudes <- function(adj_sq_weighted_matrix)
+{
+  adj_weighted_spect <- eigen(adj_sq_weighted_matrix,only.values = TRUE)
+  spect_rad_weighted <- adj_weighted_spect$values[1]
+  adj_weighted_energy <- AdjweightedEnergy(adj_weighted_spect$values)
+  lapl_weighted_matrix <- create_laplacian_matrix(adj_sq_weighted_matrix)
+  lpl_weighted_spect = eigen(lapl_weighted_matrix,only.values = TRUE)
+  lpl_spect_rad_weighted <- lpl_weighted_spect$values[1]
+  lpl_weighted_energy <- LaplweightedEnergy(lpl_weighted_spect$values,num_links,num_nodes)
+  print(sprintf("Sum weighted Laplacian spectrum %.2f",sum(lpl_weighted_spect$values)))
+  calc_values <- list("adj_weighted_spect"=adj_weighted_spect,
+                      "adj_weighted_energy"=adj_weighted_energy,
+                      "spect_rad_weighted" = spect_rad_weighted,
+                      "lpl_weighted_spect"=lpl_weighted_spect,
+                      "lpl_spect_rad_weighted" = lpl_spect_rad_weighted,
+                      "lpl_weighted_energy"=lpl_weighted_energy)
+  return(calc_values)
+}
+
+compute_statistic_indexes <- function(netw,weighted_network,datamod,networkspect,modresults,mnames)
+{
+  lheader <- length(networkspect)
+  numvals <- (nrow(datamod)-lheader)/num_experiments
+  ntry <- c()
+  for (i in 1:lheader)
+    ntry <- c(ntry,1:num_experiments)
+  dtry <- replicate(lheader,0)
+  for (i in 1:length(names(modresults)))
+    dtry <- c(dtry,ntry)
+  
+  testvalues = data.frame("MODEL"=c(),"magnitude"=c(), "networkvalue"=c(),"modelmean"=c(),
+                          "quantile"=c(),"distance"=c())
+  testvalues = data.frame("MODEL"=c(),"magnitude"=c(), "networkvalue"=c(),"modelmean"=c(),
+                          "quantile"=c(),"distance"=c())
+  if (weighted_network)
+    tmagnitudes <- list("spect_rad","adj_energy","lpl_spect_rad","lpl_energy",
+                        "spect_rad_weighted", "adj_weighted_energy","lpl_weighted_energy")
+  else
+    tmagnitudes <- list("spect_rad","adj_energy","lpl_spect_rad","lpl_energy")
+  for (modeln in mnames)
+    for (magnitude in tmagnitudes)
+    {
+      datos <- datamod[(datamod$MODEL==modeln) & (datamod$ind==magnitude),]$values
+      mvalue <- mean(datos)
+      datored <- datamod[(datamod$MODEL=="NETWORK") & (datamod$ind==magnitude),]$values
+      percentile <- ecdf(datos)
+      testvalues <- rbind(testvalues,data.frame("MODEL"=modeln,
+                                                "magnitude"=magnitude, "networkvalue"=datored,
+                                                "modelmean"=mvalue,
+                                                "quantile"=100*percentile(datored),
+                                                "distance"=datored-mvalue))
+    }
+  if (!plotzigs)
+    write.csv(testvalues,paste0(rdir,"TESTVALUES_",netw),row.names = FALSE)
+}
+
+process_network_null_models <- function(netw,result_analysis,num_experiments,mnamesbin,mnamesweighted,weightrf)
+{
+  orimatrix <- result_analysis$matrix
+  dfnested <- create_empty_dfnested()
+  weighted_network <- sum(orimatrix > 1)>0
+  if ((weighted_network) && (weightrf != "none"))
+  {
+    if (weightrf=="sqrt")
+      trfmatrix <- sqrt(orimatrix)
+    if (weightrf=="ln")
+      trfmatrix <- log(1+orimatrix)
+    trfmatrix <- ceiling(trfmatrix)
+  } else {
+    trfmatrix <- orimatrix
+  }
+  network_total_weight <- sum(trfmatrix)
+  network_nested_values <- nested(trfmatrix, c("NODF","wine","binmatnest"))
+  names(network_nested_values)
+  nodes_a <- result_analysis$num_guild_a
+  nodes_b <- result_analysis$num_guild_b
+  num_links <- result_analysis$links
+  num_nodes <- nodes_a+nodes_b
+  bmag <- compute_bin_magnitudes(result_analysis,trfmatrix,network_nested_values,nodes_a,nodes_b,num_links,num_nodes,dfnested)
+  #Hyper nested model
+  pnm <- process_nested_model_bin(nodes_a, nodes_b, num_links, hyper = TRUE)
+  dfnested <- rbind(dfnested,bmag$dfnested,
+                    data.frame("network"=netw,"model"="HNESTED",
+                                                      "NODF"=pnm$nnst["NODF"],
+                                                      "wine"=pnm$nnst["wine"],
+                                                      "binmatnest.temperature"=pnm$nnst["binmatnest.temperature"],
+                                                      "links"= sum(pnm$nstmodel>0),
+                                                      "totalweight"= sum(pnm$nstmodel)))
+  save_null_model(netw,dirnulls,pnm$nstmodel,"HNESTED",pnm$nstadj_spect,pnm$nstlpl_spect)
+  #Soft nested model
+  pnms <- process_nested_model_bin(nodes_a, nodes_b, num_links, hyper = FALSE)
+  dfnested <- rbind(dfnested,#bmag$dfnested,
+                    data.frame("network"=netw,"model"="NESTED",
+                                                      "NODF"=pnms$nnst["NODF"],
+                                                      "wine"=pnms$nnst["wine"],
+                                                      "binmatnest.temperature"=pnms$nnst["binmatnest.temperature"],
+                                                      "links"= sum(pnm$nstmodel>0),
+                                                      "totalweight"= sum(pnms$nstmodel)))
+  save_null_model(netw,dirnulls,pnms$nstmodel,"NESTED",pnms$nstadj_spect,pnms$nstlpl_spect)
+  
+  
+  # Weighted magnitudes, only for weighted networks
+  if (weighted_network){
+    wmag <- compute_weighted_magnitudes(bmag$adj_sq_weighted_matrix)
+    pnw <- process_nested_model_weighted(nodes_a, nodes_b, num_links, trfmatrix)
+    dfnested <- rbind(dfnested,data.frame("network"=netw,"model"="WNESTED",
+                                          "NODF"=pnw$weightednnst["NODF"],
+                                          "wine"=pnw$weightednnst["wine"],
+                                          "binmatnest.temperature"=pnm$nnst["binmatnest.temperature"],
+                                          "links"= sum(pnw$weightednstmodel>0),"totalweight"= sum(pnw$weightednstmodel)))
+    
+  } else {
+    lpl_weighted_energy = INCOMPLETE_MODEL_VALUE
+    wmag <- NULL
+    pnw <- NULL
+  }
+  
+  save_null_model(netw,dirnulls,pnm$nstmodel,"WNESTED",pnm$nstadj_spect,pnm$nstlpl_spect,
+                  wadj_spect_val=pnw$weightednstadj_spect,wlpl_spect_val=pnw$weightednstlpl_spect)
+  networkspect <- create_networkspect_dataframe(weighted_network,bmag,wmag)
+  mnames <- mnamesbin
+  if (weighted_network)
+    mnames <- c(mnames,mnamesweighted)
+  nmodels <- length(mnames)
+  model_full <- create_models_list(mnames,NULL)
+  nname <- gsub(".csv","",netw)
+  nullsinfo <- create_nullsinfo(num_experiments)
+  modresults <- lapply(1:nmodels, function(x) nullsinfo)
+  names(modresults) <- mnames
+  specresults <- lapply(1:nmodels, function(x) c())
+  names(specresults) <- mnames
+  datamod <- create_datamodels(weighted_network,networkspect,pnm,pnms,pnw)
+  nodes_guild_a <- seq(1,result_analysis$num_guild_a)  # guild a top rows/left columns
+  nodes_guild_b <- seq(1,result_analysis$num_guild_b)  # guild b bottom rows/right columns
+  for (k in 1:num_experiments) {
+    if (!k%%20)
+      print(paste("experiment",k))
+    for (tmodel in mnames)
+    {
+      for (i in 1:20){     # This section is protectec against some null model failures, specially SWAP
+        result <- tryCatch(
+          {
+            p <- gen_null_model(tmodel,datamod,result_analysis,trfmatrix,nodes_guild_a,nodes_guild_b,
+                                num_links,num_nodes,nmagnitudes,weighted_network)
+          },
+          error = function(cond) {
+            message(paste("Null model generation error:", tmodel))
+            message("Here's the original error message:")
+            message(conditionMessage(cond))
+            # Choose a return value in case of error
+            NA
+          }
+        )
+        if (class(result) != "try-error") {   # Null model succesfully generated
+          break
+        }
+      }
+      model_full[[tmodel]] <- p$incidmatrix
+      # Save null matrices of first experiment
+      if (k==1)
+        save_null_model(netw,dirnulls,p$incidmatrix,tmodel,p$resp$null_spect,
+                        p$resp$lpl_spect_nulls,wadj_spect_val=p$resp$null_weighted_spect,
+                        wlpl_spect_val=p$resp$lpl_weighted_spect_nulls)  
+      modresults[[tmodel]][k,] <- p$mres
+      specresults[[tmodel]] <- p$resp
+      dfnested <- rbind(dfnested,data.frame("network"=netw,"model"=tmodel,"NODF"=p$resp$NODF,"wine"=p$resp$wine,"binmatnest.temperature"=p$resp$binmatnest.temperature,
+                                            "links"= sum(p$incidmatrix>0),"totalweight"= sum(p$incidmatrix)))
+    }
+  }
+  calc_values <- list("matrix"=trfmatrix,"modresults"=modresults,"specresults"=specresults,"datamod"=datamod,
+                      "dfnested" = dfnested,"networkspect"=networkspect,
+                      "mnames"=mnames,"weighted_network"=weighted_network,
+                      "nodes_a"=nodes_a,"nodes_b"=nodes_b,"num_links"=num_links,
+                      "network_total_weight"=network_total_weight,
+                      "bmag"=bmag,"wmag"=wmag,"pnm"=pnm,"pnms"=pnms,"pnw"=pnw)
+  return(calc_values)
+}
+
+create_empty_dfnested <- function()
+{
+  p <- data.frame("network"=c(),"model"=c(),"NODF"=c(),"wine"=c(), "binmatnest.temperature"=c(),
+                  "links"=c(),"totalweight"=c())
+  return(p)
+}
+
+store_nested_values <- function(dfnested){
+  dfnested <- rbind(dfnested,data.frame("network"=netw,"model"=tmodel,"NODF"=p$resp$NODF,"wine"=p$resp$wine,
+                                        "binmatnest.temperature"=p$resp$binmatnest.temperature,"links"= sum(p$incidmatrix>0),"totalweight"= sum(p$incidmatrix)))
+  return(dfnested)
+}
+

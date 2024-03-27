@@ -1,4 +1,4 @@
-plot_distr_null <- function(df,nvalue,networkname="",title="",nestedvalue="",hypernestedvalue=""){
+plot_distr_null <- function(df,nvalue,nlinks=0,networkname="",title="",nestedvalue="",hypernestedvalue=""){
   lmodels <- unique(df$type)
   clist <- get_colors(lmodels,colormodels)
   plot <- ggplot(data=df)+geom_histogram(aes(x=vals,fill=type),bins=30,position="identity",alpha=0.6)+
@@ -9,12 +9,15 @@ plot_distr_null <- function(df,nvalue,networkname="",title="",nestedvalue="",hyp
            panel.grid = element_blank(),
            legend.key.size = unit(0.3, 'cm'))+
      guides(fill=guide_legend(nrow=2, byrow=TRUE))
-  plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.5,alpha=0.5)+
+  plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.75,alpha=0.5)+
           ggtitle(title)
   if (nestedvalue!="")
-    plot <- plot+geom_vline(xintercept = nestedvalue,color = "red4", size=0.5,alpha=0.5,linetype="dotted")
+    plot <- plot+geom_vline(xintercept = nestedvalue,color = "red4", size=0.75,alpha=0.5,linetype="dotted")
   if (hypernestedvalue!="")
-    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "red", size=0.5,alpha=0.2)
+    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "magenta", size=0.75,alpha=0.2)
+  if (nlinks>0)
+    plot <- plot+geom_vline(xintercept = sqrt(nlinks),color = "grey7", size=0.75,alpha=0.5,linetype="dotted")
+  
   return(plot)
 }
 
@@ -54,13 +57,13 @@ plot_bipartite <- function(bg, aspect_ratio = 9/35, vframecolor = "grey70", vlab
 }
 
 # Plots the probability distributions of all models for a particular magnitude and network
-plot_distributions <- function(mresults,magnitude,stitle,vtitle,nname,fdummy,nestedv="",hypernestedv=""){
+plot_distributions <- function(mresults,magnitude,stitle,vtitle,nname,fdummy,nlinks=0,nestedv="",hypernestedv=""){
   mdls <- names(mresults)
   col <- which(names(mresults[[1]])==magnitude)
   df_nulls <- data.frame("vals"=mresults[[1]][,col],"type"=mdls[[1]])
   for (i in 2:length(mdls))
     df_nulls <- rbind(df_nulls,data.frame("vals"= mresults[[mdls[i]]][,col],"type"=mdls[i]))
-  pimage <- plot_distr_null(df_nulls,vtitle,networkname=nname,
+  pimage <- plot_distr_null(df_nulls,vtitle,networkname=nname,nlinks=nlinks,
                             title=sprintf("%s %.2f",stitle,vtitle),nestedvalue = nestedv,
                             hypernestedvalue=hypernestedv)
   calc_values <- list("df_nulls"= df_nulls, "pimage" = pimage)
@@ -108,26 +111,30 @@ plot_all_distr <- function(nname,plotzigs,nnm){
       trsuff <- paste0("[",weightrf,"]")
     pd_weighted_adj_energy <- plot_distributions(nnm$modresultsweighted,"adj_weighted_energy",paste("Weighted Adj. Energy",trsuff),nnm$wmag$adj_weighted_energy,netw,fract_dummy,nestedv=nnm$pnw$weightednstadj_energy)
     pd_weighted_lpl_energy <- plot_distributions(nnm$modresultsweighted,"lpl_weighted_energy",paste("Weighted Laplacian energy",trsuff),nnm$wmag$lpl_weighted_energy,netw,fract_dummy,nestedv=nnm$pnw$weightednstlpl_energy)
+    pd_weighted_lpl_spect_rad <- plot_distributions(nnm$modresultsweighted,"lpl_spect_rad_weighted",paste("Lpl Weighted spectral radius",trsuff),nnm$wmag$lpl_spect_rad_weighted,netw,fract_dummy,nestedv=nnm$pnw$weightednstlplspect_rad)
+    
     pd_weighted_spect_rad <- plot_distributions(nnm$modresultsweighted,"spect_rad_weighted",paste("Weighted spectral radius",trsuff),nnm$wmag$spect_rad_weighted,netw,fract_dummy,nestedv=nnm$pnw$weightednstspect_rad)
   }
-  pd_spect_rad <- plot_distributions(nnm$modresults,"spect_rad","Spectral radius",nnm$bmag$adj_spect$values[1],netw,fract_dummy,nestedv=nnm$pnms$nstspect_rad,hypernestedv=nnm$pnm$nstspect_rad)
+  
+  pd_spect_rad <- plot_distributions(nnm$modresults,"spect_rad","Spectral radius",nnm$bmag$adj_spect$values[1],netw,fract_dummy,nlinks=nnm$num_links,nestedv=nnm$pnms$nstspect_rad,hypernestedv=nnm$pnm$nstspect_rad)
+  pd_lpl_spect_rad <- plot_distributions(nnm$modresults,"lpl_spect_rad","Lpl Spectral radius",nnm$bmag$lpl_spect$values[1],netw,fract_dummy,nestedv=nnm$pnms$nstlplspect_rad,hypernestedv=nnm$pnm$nstlplspect_rad)
   pd_lpl_energy <- plot_distributions(nnm$modresults,"lpl_energy","Laplacian energy",nnm$bmag$lpl_energy,netw,fract_dummy,nestedv=nnm$pnms$nstlpl_energy,hypernestedv=nnm$pnm$nstlpl_energy)
   pd_energy <- plot_distributions(nnm$modresults,"adj_energy","Adj. Energy",nnm$bmag$adj_energy,netw,fract_dummy,nestedv=nnm$pnms$nstadj_energy,hypernestedv=nnm$pnm$nstadj_energy)
   if (nnm$weighted_network){
-    wmed <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_energy$pimage) 
-    winf <- ( pd_weighted_spect_rad$pimage | pd_weighted_adj_energy$pimage | pd_weighted_lpl_energy$pimage )
+    wmed <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
+    winf <- ( pd_weighted_spect_rad$pimage | pd_weighted_adj_energy$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
     wtot <- (wmed/ winf) + plot_layout(heights = c(0.5,0.5))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))
-    plwidth <- 13
+    plwidth <- 17
     plheight <- 10
   } else {
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum)
-    winf <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_energy$pimage)
+    winf <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage)
     wtot <- winf
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5))) 
-    plwidth <- 13
+    plwidth <- 17
     plheight <- 5
   }
   sweight <- "WEIGHTED"
@@ -139,20 +146,21 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   dev.off()
   if (nnm$weighted_network){
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum | pl_lpl_weighted_spectrum)
-    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_energy$pimage) 
-    winf <- (pd_weighted_adj_energy$pimage | pd_weighted_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
+    
+    wmed <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
+    winf <- (pd_weighted_spect_rad$pimage | pd_weighted_adj_energy$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
     wtot <- (wsup / wmed/ winf) + plot_layout(heights = c(0.33,0.33,0.33))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))
-    plwidth <- 13
+    plwidth <- 17
     plheight <- 13
   } else {
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum)
-    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_energy$pimage)
+    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage)
     wtot <- (wsup / winf) + plot_layout(heights = c(0.5,0.5))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5))) 
-    plwidth <- 13
+    plwidth <- 17
     plheight <- 10
   }
   sweight <- "WEIGHTED"
