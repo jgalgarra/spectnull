@@ -43,7 +43,7 @@ np=na+6
 
 
 
-result_analysis <- analyze_network(directory = "data/", "M_PL_002.csv", only_NODF = TRUE)
+result_analysis <- analyze_network(directory = "data/", "M_PL_004.csv", only_NODF = TRUE)
 unmatrix <- unname(result_analysis$matrix)
 rs <- rowSums(unmatrix)
 positions <- c()

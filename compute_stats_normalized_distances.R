@@ -113,10 +113,10 @@ for (weightrf in lweightrf)
          corrdata[i,]$weight <- dfn$Weight[1]
          corrdata[i,]$connectance <- dfn$Connectance[1]
         }
-        mycorrlinks <- cor(corrdata$meannormdist,corrdata$links,method = "spearman")
-        mycorrnodes <- cor(corrdata$meannormdist,corrdata$nodes,method = "spearman")
-        mycorrweight <- cor(corrdata$meannormdist,corrdata$weight,method = "spearman")
-        mycorrconnectance <- cor(corrdata$meannormdist,corrdata$connectance,method = "spearman")
+        mycorrlinks <- cor(corrdata$meannormdist,corrdata$links,method = "pearson")
+        mycorrnodes <- cor(corrdata$meannormdist,corrdata$nodes,method = "pearson")
+        mycorrweight <- cor(corrdata$meannormdist,corrdata$weight,method = "pearson")
+        mycorrconnectance <- cor(corrdata$meannormdist,corrdata$connectance,method = "pearson")
         
         if (!is.na(mycorrlinks))
           datacorr <- rbind(datacorr,data.frame("disttype"=disttype,"model"=model,

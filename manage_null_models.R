@@ -1,5 +1,3 @@
-
-
 create_nullsinfo <- function(num_experiments){
   nullsinfo <- data.frame("spect_rad"=replicate(num_experiments,INCOMPLETE_MODEL_VALUE))
   nullsinfo$adj_energy <- INCOMPLETE_MODEL_VALUE
@@ -21,7 +19,7 @@ create_datamodels <- function(weighted_network,networkspect,pnm,pnms,pnw){
   datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
-  datamod <- rbind(datamod,data.frame("values"=pnm$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnms$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstlpl_energy,"ind"="lpl_energy","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstadj_energy,"ind"="adj_energy","MODEL"="NESTED" ))
   
@@ -702,8 +700,8 @@ store_network_magnitudes_global_file <- function(netw,nnm){
     NMags <- NMags[NMags$Network!=netw,]
     NMags <- rbind(NMags,network_values)
   } 
-  #else       
-  #   NMags <- network_values
+  else       
+     NMags <- network_values
 
   if (!plotzigs)
     write.csv(NMags,NFile,row.names = FALSE)
@@ -807,7 +805,6 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
   }
   network_total_weight <- sum(trfmatrix)
   network_nested_values <- nested(trfmatrix, c("NODF","wine","binmatnest"))
-  names(network_nested_values)
   nodes_a <- result_analysis$num_guild_a
   nodes_b <- result_analysis$num_guild_b
   num_links <- result_analysis$links

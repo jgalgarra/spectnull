@@ -42,8 +42,11 @@ for (weightrf in lweightrf)
   rdir <- paste0(debugpref,dbaseb,weightrf,"/",rdirb)
   resultsdir <- rdir
   normresults <- paste0(rdir,"normalized/")
+  unlink(normresults, recursive=TRUE)
   dir.create(normresults, showWarnings = FALSE)
   filenames <- Sys.glob(paste0(resultsdir,"MODS_*.csv"))
+  if (ignore_GC_results)
+    filenames <- filenames[!grepl("_GC.csv",filenames)]
   lnetw <- gsub(".csv","",gsub(resultsdir,"",filenames))
   networktypes <- data.frame("network"=c(),"type"=c())
   for (netw in lnetw)
@@ -62,7 +65,7 @@ for (weightrf in lweightrf)
     if (matrixtype=="WEIGHTED")
       values_magnitudes <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","spect_rad","lpl_spect_rad","lpl_weighted_energy","adj_weighted_energy","lpl_spect_rad_weighted","spect_rad_weighted","algebraic_connectivity"),]
     else
-      values_magnitudes <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","lpl_spect_rad","spect_rad"),]
+      values_magnitudes <- values_network[values_network$ind %in% c("adj_energy","lpl_energy","lpl_spect_rad","spect_rad","algebraic_connectivity"),]
     models <- unique(values_magnitudes$MODEL)
     adj_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","adj_energy")
     lpl_energy_empirical <- getvaluesmagnitude(values_magnitudes,"NETWORK","lpl_energy")

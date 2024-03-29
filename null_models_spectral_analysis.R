@@ -44,23 +44,9 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 # PROGRAM BODY
 #
 #
-# Configuration parameters
-seed <- 122
-num_experiments <- 5
-plottofile <- TRUE # Save individual network distributions plot
-plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are
-                   # not saved. Run the script with a big number of experiments (~1000) to compute
-                   # magnitudes and plotzigs FALSE. Run it again selecting just the networks you need
-                   # to plot and a small number of experiments (~10)
-NetworkMagsFile <- "NetworkMagnitudes.csv" # Stores network magnitudes and average spectral measures
-nmagnitudes <- list("spect_rad","adj_energy","lpl_spect_rad","lpl_energy")#,"algebraic_connectivity")
-# Null models for binary/binarized and weighted networks
-mnamesbin <- c("RND","MGEN","SHUFFLE","VAZ","SYTR")
-mnamesweighted <- c("SWAP","WRND","BVAZ","BSHUFFLE","PATEFIELD")
-MIN_LINKS_SIZE <- 20  # Smaller networks are discarded
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*PL*01?.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_PL_002*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network

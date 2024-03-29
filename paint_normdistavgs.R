@@ -11,9 +11,15 @@ source("config_values.R")
 
 library("data.table")
 source("colormodels.R")
+
+shortenlabel <- function(network){
+ return(gsub("SD0","SD",gsub("M0","M",gsub("HP0","HP",gsub("PL0","PL",gsub("M","",gsub("RA","",gsub("00","0",gsub("_","",network)))))))))
+}
 NESTplot <- function(ndata,yvar,ylabel="",nestmeasure="NODF"){
   if (nestmeasure=="NODF")
     myndata <- data.frame("network"=ndata$network,"NEST"=ndata$NODF,"y"=yvar)
+  if (nestmeasure=="binmatnest.temperature")
+    myndata <- data.frame("network"=ndata$network,"NEST"=ndata$binmatnest.temperature,"y"=yvar)
   if (nestmeasure=="wine")
     myndata <- data.frame("network"=ndata$network,"NEST"=ndata$wine,"y"=yvar)
   myndata$interaction <- "SD"
@@ -53,6 +59,7 @@ normdistplot <- function(plotdata,disttype,rvalue){
 }
 
 reldistplot <- function(avg_data,disttype){
+  avg_data <- avg_data[!(avg_data$MODEL %in% c("VAZ","B/VAZ","SHUFFLE","B/SHUFFLE","SWAP","MGEN","PATEFIELD")),]
   clist <- get_colors(unique(avg_data$MODEL),colormodels) 
   s <- ggplot(data=avg_data) +
     geom_point(aes( network ,avg,fill=MODEL),
@@ -89,16 +96,16 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
     
     p <- datarel %>%
       group_by(MODEL)%>%
-      summarise(medn = mean(reldist))
+      summarise(medn = mean(reldistnetwork))
     datarel$MODEL <- factor(datarel$MODEL,levels=p[order(p$medn),]$MODEL)
 
     avgrels <- datarel %>%
       group_by(network,MODEL)%>%
-      summarise(medn = mean(reldist))
+      summarise(medn = mean(reldistnetwork))
     
     
     clist <- get_colors(unique(avgrels$MODEL),colormodels)
-    distrpl <- ggplot(data=datarel[datarel$MODEL!="NETWORK"],aes(y=reldist,x=MODEL,fill=MODEL))+
+    distrpl <- ggplot(data=datarel[datarel$MODEL!="NETWORK"],aes(y=reldistnetwork,x=MODEL,fill=MODEL))+
       ggdist::stat_halfeye( adjust = 1, width = 0.4, .width = 0, alpha=0.5,
                             justification = -.5,point_colour = NA ) + 
       geom_boxplot(width = 0.1,alpha = 0,outlier.shape = NA) +
@@ -120,8 +127,7 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
       distrpl <- distrpl + ggtitle("Weighted networks")
     }
     
-    
-    png(paste0(pldir,"RELDIST_MODELS_",paste(disttype,collapse="-"),".png"),width=w*ppi,height=8*ppi,res=ppi)
+    png(paste0(pldir,"RELDIST_NETWORK_MODELS_",paste(disttype,collapse="-"),".png"),width=w*ppi,height=8*ppi,res=ppi)
     print(distrpl)
     dev.off()
     
@@ -148,15 +154,25 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
     
     avg_data <- plotdata %>%
       group_by(network,MODEL)%>%
-      summarise(avg = mean(reldist))
+      summarise(avg = mean(reldistnetwork))
     if (binmags)
       orderdata <- avg_data[avg_data$MODEL=="B/SHUFFLE",]
     else
       orderdata <- avg_data[avg_data$MODEL=="VAZ",]
     avg_data$network <- factor(avg_data$network,orderdata[order(orderdata$avg),]$network)
     s <- reldistplot(avg_data,disttype)
-    png(paste0(pldir,"RELDIST_DOT_",paste(disttype,collapse="-"),".png"),width=20*ppi,height=10*ppi,res=ppi)
+    png(paste0(pldir,"RELDIST_NETWORK_DOT_",paste(disttype,collapse="-"),".png"),width=20*ppi,height=10*ppi,res=ppi)
     print(s)
+    dev.off()
+    
+    avg_data <- plotdata %>%
+      group_by(network,MODEL)%>%
+      summarise(avg = mean(reldistnested))
+    orderdata <- avg_data[avg_data$MODEL=="NETWORK",]
+    avg_data$network <- factor(avg_data$network,orderdata[order(orderdata$avg),]$network)
+    t <- reldistplot(avg_data,disttype)
+    png(paste0(pldir,"RELDIST_NESTED_DOT_",paste(disttype,collapse="-"),".png"),width=20*ppi,height=10*ppi,res=ppi)
+    print(t)
     dev.off()
   }
 }
@@ -168,9 +184,11 @@ plot_corr_nor_magnitude <- function(normdists,ndist,ymag,yscale="",cutoff_links=
   p <- ggplot(data=dp,aes(x=meannormdist,y=dp[[ymag]]))+geom_point(size=3)+
     xlab("Normalized distance")+ylab(ymag)+xlim(c(min(dp$meannormdist),max(dp$meannormdist)))+
     #scale_x_sqrt()+
-    ggtitle(sprintf("Normalized %s Correlation %.2f",ndist,cor(dp[[ymag]],dp$meannormdist,method="spearman")))+theme_bw()
+    ggtitle(sprintf("Normalized %s Correlation %.2f",ndist,cor(dp[[ymag]],dp$meannormdist,method="pearson")))+theme_bw()
   if(yscale=="log")
     p <- p + scale_y_log10()
+  
+  p <- p+coord_flip()
   return(p)
 }
 
@@ -180,20 +198,67 @@ plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale="",cutoff_links
   p <- ggplot(data=nmags,aes(x=nmags[[xmag]],y=nmags[[ymag]]))+
     geom_point(size=3)+
     xlab("Magnitude")+ylab(ymag)+
-    ggtitle(sprintf("%s Correlation %.2f",ndist,cor(nmags[[xmag]],nmags[[ymag]],method="spearman")))+theme_bw()
+    ggtitle(sprintf("%s Correlation %.2f",ndist,cor(nmags[[xmag]],nmags[[ymag]],method="pearson")))+theme_bw()
   if(xscale=="log")
     p <- p + scale_x_log10()
   if(yscale=="log")
     p <- p + scale_y_log10()
+  
+  p <- p+coord_flip()
   return(p)
 }
 
-save_corr_plots <- function(ckp,cnp,filetext="",w=18,h=12)
+save_corr_plots <- function(ckp,cnp,filetext="",w=24,h=12)
 {
-  pd <- ( (ckp[[1]] | ckp[[2]] | ckp[[3]]) / (cnp[[1]] | cnp[[2]] | cnp[[3]]) )
+  pd <- ( (ckp[[1]] | ckp[[2]] | ckp[[3]] | ckp[[4]])/ (cnp[[1]] | cnp[[2]] | cnp[[3]] | cnp[[4]]) )
   png(paste0(pldir,filetext,".png"),width=w*ppi,height=h*ppi,res=ppi)
   print(pd)
   dev.off()
+}
+
+plot_magnitudes_relationship <- function(dfall){
+  dfrads <- data.frame("spect_rad"=dfall[dfall$disttype=="spect_rad",]$meannormdist,
+                       "lpl_spect_rad"=dfall[dfall$disttype=="lpl_spect_rad",]$meannormdist,
+                       "adj_energy"=dfall[dfall$disttype=="adj_energy",]$meannormdist,
+                       "lpl_energy"=dfall[dfall$disttype=="lpl_energy",]$meannormdist,
+                       "algebraic_connectivity"=dfall[dfall$disttype=="algebraic_connectivity",]$meannormdist,
+                       "network"=dfall[dfall$disttype=="spect_rad",]$network)
+  plr <- ggplot(data=dfrads,aes(x=spect_rad,y=lpl_spect_rad))+geom_point()+
+    geom_text_repel(data=dfrads, aes(x=spect_rad, y=lpl_spect_rad,
+                         label=shortenlabel(network)),
+                         max.overlaps=6,size=3)+
+        ylab("Norm. Lapl. spectral radius")+xlab("Norm. spectral radius")+
+        ggtitle(sprintf("Corr: %.2f",cor(dfrads$spect_rad,dfrads$lpl_spect_rad,method="pearson")))+theme_bw()
+  ple <- ggplot(data=dfrads,aes(x=adj_energy,y=lpl_energy))+geom_point()+
+    geom_text_repel(data=dfrads, aes(x=adj_energy, y=lpl_energy,
+                                     label=shortenlabel(network)),
+                    max.overlaps=6,size=3)+
+    ylab("Laplacian Energy")+xlab("Adjacency Energy")+
+    ggtitle(sprintf("Corr: %.2f",cor(dfrads$adj_energy,dfrads$lpl_energy,method="pearson")))+theme_bw()
+  dfalnonnull <- dfrads[dfrads$algebraic_connectivity>0.000001,]
+  plac <- ggplot(data=dfalnonnull,aes(x=lpl_spect_rad,y=algebraic_connectivity))+geom_point()+
+    geom_text_repel(data=dfalnonnull, aes(x=lpl_spect_rad, y=algebraic_connectivity,
+                                     label=shortenlabel(network)),
+                    max.overlaps=6,size=3)+
+    xlab("Algebraic connectivity")+ylab("Norm. Lpl. spectral radius")+
+    ggtitle(sprintf("Corr: %.2f",cor(dfrads$lpl_spect_rad,dfrads$algebraic_connectivity,method="pearson")))+theme_bw()
+  
+  
+  return(list(plr,plac,ple))
+}
+
+create_references_df <-function(distnet,lmagnitudes,refmodel){
+  vrefs <- data.frame("dummy"=1)
+  for (mag in lmagnitudes){
+   vrefs <-cbind(vrefs,(distnet[(distnet$MODEL==refmodel) & (distnet$ind==mag)]$normdist))
+    # vrefs <-data.frame("spect_rad"=distnet[(distnet$MODEL=="NETWORK") & (distnet$ind=="spect_rad")]$normdist,
+    #        "lpl_spect_rad"=distnet[(distnet$MODEL=="NETWORK") & (distnet$ind=="lpl_spect_rad")]$normdist,
+    #        "adj_energy"=distnet[(distnet$MODEL=="NETWORK") & (distnet$ind=="adj_energy")]$normdist,
+    #        "lpl_energy"=distnet[(distnet$MODEL=="NETWORK") & (distnet$ind=="lpl_energy")]$normdist)
+  }
+  vrefs <- vrefs[,2:ncol(vrefs)]
+  names(vrefs)<-lmagnitudes
+  return(vrefs)
 }
 
 set.seed(122)
@@ -209,16 +274,48 @@ for (weightrf in lweightrf)
   alldistances <- fread(paste0(normresults,"ALLNORMALIZED.csv"))
   networktypes <- fread(paste0(normresults,"networktypes.csv"))
   nestedmeasures <- fread(paste0(normresults,"ALLNESTEDMEASURES.csv"))
+  dataconnection <- fread(paste0(dataprocessed,"dataconnection.csv"))
   alldistances$network <- gsub("MINMAX_MODS_","",alldistances$network)
-  lbinmags <- c("spect_rad","adj_energy","lpl_energy")
-  lweightmags <- c("spect_rad_weighted","adj_weighted_energy","lpl_weighted_energy")
+  if (ignore_GC_results)    # Use raw networks, even if they are not fully connected
+  {
+    alldistances <- alldistances[!grepl("_GC",alldistances$network),]
+    normdistavgs <- normdistavgs[!grepl("_GC",normdistavgs$network),]
+    nestedmeasures <- nestedmeasures[!grepl("_GC",nestedmeasures$network),]
+  }
+  else                      # Use processed data files with removed disconnected components 
+  {
+    discnets <- dataconnection[dataconnection$FullyConnected==0,]$Network
+    alldistances <- alldistances[!(alldistances$network %in% discnets),]
+    normdistavgs <- normdistavgs[!(normdistavgs$network %in% discnets),]
+    nestedmeasures <- nestedmeasures[!(nestedmeasures$network %in% discnets),]
+  }
+  lbinmags <- c("spect_rad","adj_energy","lpl_spect_rad","lpl_energy")
+  lweightmags <- c("spect_rad_weighted","adj_weighted_energy","lpl_spect_rad_weighted","lpl_weighted_energy")
   # Compute relative distance to netork
-  alldistances$reldist <- -5
-  for (myn in unique(alldistances$network))
-    alldistances[alldistances$network==myn,]$reldist <- alldistances[alldistances$network==myn,]$normdist - alldistances[alldistances$network==myn & alldistances$MODEL=="NETWORK",]$normdist
-  
-  
-  # Global boxplots
+  alldistances$reldistnetwork <- -5
+  alldistances$reldistnested <- -5
+  for (myn in unique(alldistances$network)){
+    print(myn)
+    distnet <- alldistances[alldistances$network==myn,]
+    valnetwork <- create_references_df(distnet,lbinmags,"NETWORK")
+    valnested <- create_references_df(distnet,lbinmags,"NESTED")
+    for (m in names(valnetwork)){
+         distnet[distnet$ind==m,]$reldistnetwork <- distnet[distnet$ind==m,]$normdist - valnetwork[[m]]
+         distnet[distnet$ind==m,]$reldistnested <- distnet[distnet$ind==m,]$normdist - valnested[[m]]
+         
+    }
+    if (networkmags[networkmags$Network==myn,]$Weighted[1]){
+      valnetwork <- create_references_df(distnet,lweightmags,"NETWORK")
+      valnested <- create_references_df(distnet,lweightmags,"WNESTED")
+      for (m in names(valnetwork)){
+        distnet[distnet$ind==m,]$reldistnetwork <- distnet[distnet$ind==m,]$normdist - valnetwork[[m]]
+        distnet[distnet$ind==m,]$reldistnested <- distnet[distnet$ind==m,]$normdist - valnested[[m]]
+        
+      }
+    }
+    alldistances[alldistances$network==myn,] <- distnet
+  }
+    # Global boxplots
   
   z <- vector(mode='list', length=6)
   j = 1
@@ -226,7 +323,6 @@ for (weightrf in lweightrf)
   # Binarized magnitudes
   for (nt in c("WEIGHTED"))#c("BINARY","WEIGHTED"))
   {
-  
     if (nt=="BINARY"){
       #mags <- c("adj_energy","lpl_energy","spect_rad","adj_weighted_energy","lpl_weighted_energy","spect_rad_weighted")
       mags <- lbinmags
@@ -287,40 +383,64 @@ for (weightrf in lweightrf)
   
   networksnesteddata <- nestedmeasures[nestedmeasures$model=="NETWORK",]
   networksnesteddata$binary_spect_rad <- 0
+  networksnesteddata$lpl_spect_rad <- 0
   networksnesteddata$adj_energy <- 0
   networksnesteddata$lpl_energy <- 0
   #networksnesteddata$algebraic_connectivity <- 0
   for (i in 1:nrow(networksnesteddata)){
     recordnet <- normdistavgs[normdistavgs$network==networksnesteddata$network[i] &normdistavgs$MODEL=="NETWORK" &normdistavgs$disttype=="spect_rad",]
     networksnesteddata$binary_spect_rad[i] <- recordnet$meannormdist
+    recordnet <- normdistavgs[normdistavgs$network==networksnesteddata$network[i] &normdistavgs$MODEL=="NETWORK" &normdistavgs$disttype=="lpl_spect_rad",]
+    networksnesteddata$lpl_spect_rad[i] <- recordnet$meannormdist
     recordnet <- normdistavgs[normdistavgs$network==networksnesteddata$network[i] &normdistavgs$MODEL=="NETWORK" &normdistavgs$disttype=="adj_energy",]
     networksnesteddata$adj_energy[i] <- recordnet$meannormdist
     recordnet <- normdistavgs[normdistavgs$network==networksnesteddata$network[i] &normdistavgs$MODEL=="NETWORK" &normdistavgs$disttype=="lpl_energy",]
     networksnesteddata$lpl_energy[i] <- recordnet$meannormdist
   }
-  binarynets <- networktypes[networktypes$type=="BINARY",]$network
+  #binarynets <- networktypes[networktypes$type=="BINARY",]$network
+  binarynets <- networktypes$network
   
   nodfplt_s <- NESTplot(networksnesteddata,networksnesteddata$binary_spect_rad,ylabel="Normalized spectral radius distance")
+  nodfplt_lpl_s <- NESTplot(networksnesteddata,networksnesteddata$lpl_spect_rad,ylabel="Normalized Laplacian spectral radius distance")
   nodfplt_adj <- NESTplot(networksnesteddata,networksnesteddata$adj_energy,ylabel="Normalized adjacency energy distance")
   nodfplt_lpl <- NESTplot(networksnesteddata,networksnesteddata$lpl_energy,ylabel="Normalized laplacian energy distance")
   
-  nodfplots <- (nodfplt_s | nodfplt_adj | nodfplt_lpl)
-  png(paste0(pldir,"NODFPLOTS.png"),width=21*ppi,height=7*ppi,res=ppi)
+  nodfplots <- (nodfplt_s | nodfplt_adj) / (nodfplt_lpl_s | nodfplt_lpl)
+  png(paste0(pldir,"NODFPLOTS.png"),width=14*ppi,height=14*ppi,res=ppi)
   
   print(nodfplots)
   dev.off()
   
+  binmatnestplt_s <- NESTplot(networksnesteddata,networksnesteddata$binary_spect_rad,ylabel="Normalized spectral radius distance",nestmeasure = "binmatnest.temperature")
+  binmatnestplt_lpl_s <- NESTplot(networksnesteddata,networksnesteddata$lpl_spect_rad,ylabel="Normalized Laplacian spectral radius distance",nestmeasure = "binmatnest.temperature")
+  binmatnestplt_adj <- NESTplot(networksnesteddata,networksnesteddata$adj_energy,ylabel="Normalized adjacency energy distance",nestmeasure = "binmatnest.temperature")
+  binmatnestplt_lpl <- NESTplot(networksnesteddata,networksnesteddata$lpl_energy,ylabel="Normalized laplacian energy distance",nestmeasure = "binmatnest.temperature")
+  
+  binmatnestplots <- (binmatnestplt_s | binmatnestplt_adj) / (binmatnestplt_lpl_s | binmatnestplt_lpl)
+  png(paste0(pldir,"BINMMATNESTPLOTS.png"),width=14*ppi,height=14*ppi,res=ppi)
+  
+  print(binmatnestplots)
+  dev.off()
+  
   weightednets <- networktypes[networktypes$type=="WEIGHTED",]$network
   networksnestedweighted <- networksnesteddata[networksnesteddata$network %in% weightednets]
-  
   wineplt_s <- NESTplot(networksnestedweighted,networksnestedweighted$binary_spect_rad,ylabel="Normalized spectral radius distance",nestmeasure = "wine")
+  wineplt_lpl_s <- NESTplot(networksnestedweighted,networksnestedweighted$lpl_spect_rad,ylabel="Normalized Laplacian spectral radius distance",nestmeasure = "wine")
   wineplt_adj <-  NESTplot(networksnestedweighted,networksnestedweighted$adj_energy,ylabel="Normalized adjacency energy distance",nestmeasure = "wine")
   wineplt_lpl <- NESTplot(networksnestedweighted,networksnestedweighted$lpl_energy,ylabel="Normalized laplacian energy distance",nestmeasure = "wine")
   
-  wineplots <- (wineplt_s | wineplt_adj | wineplt_lpl)
-  png(paste0(pldir,"WINEPLOTS.png"),width=21*ppi,height=7*ppi,res=ppi)
+  wineplots <- ((wineplt_s | wineplt_adj)/( wineplt_lpl_s| wineplt_lpl))
+  png(paste0(pldir,"WINEPLOTS.png"),width=14*ppi,height=14*ppi,res=ppi)
   
   print(wineplots)
+  dev.off()
+  
+  normdists <- normdistavgs[normdistavgs$MODEL=="NETWORK"]
+  # Magnitudes plot
+  mpl <- plot_magnitudes_relationship(normdists)
+  plmag <- (mpl[[1]] | mpl[[2]] | mpl[[3]])
+  png(paste0(pldir,"MAGNITUDES_RELATIONSHIP.png"),width=24*ppi,height=8*ppi,res=ppi)
+  print(plmag)
   dev.off()
   
   # Correlation with size plots
@@ -329,17 +449,21 @@ for (weightrf in lweightrf)
   normdists$Links <- 0
   normdists$Nodes <- 0
   normdists$Weight <- 0
+  normdists$Connectance <- 0
   for (i in 1:nrow(normdists)){
     dnet <- nmags[nmags$Network==normdists$network[i],][1]
     normdists$Links[i] <- dnet$Links
     normdists$Nodes[i] <- dnet$NodesA+dnet$NodesB
     normdists$Weight[i] <- dnet$Weight
+    normdists$Connectance[i] <- dnet$Connectance
   }
   nmags$Nodes <- nmags$NodesA + nmags$NodesB
   cnl <- vector(mode='list', length=length(lbinmags))
   cml <- vector(mode='list', length=length(lbinmags))
   cnn <- vector(mode='list', length=length(lbinmags))
   cmn <- vector(mode='list', length=length(lbinmags))
+  cnc <- vector(mode='list', length=length(lbinmags))
+  cmc <- vector(mode='list', length=length(lbinmags))
   
   i <- 1
   for (ndist in lbinmags){
@@ -347,11 +471,13 @@ for (weightrf in lweightrf)
     cml[[i]] <- plot_corr_magnitude(nmags,ndist,"Links")
     cnn[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Nodes")
     cmn[[i]] <- plot_corr_magnitude(nmags,ndist,"Nodes")
+    cnc[[i]] <- plot_corr_nor_magnitude(normdists,ndist,"Connectance")
+    cmc[[i]] <- plot_corr_magnitude(nmags,ndist,"Connectance")   
     i <- i+1
   }
   save_corr_plots(cml,cnl,filetext="LINKSDISTBIN_LINKS")
   save_corr_plots(cmn,cnn,filetext="LINKSDISTBIN_NODES")
-  
+  save_corr_plots(cmc,cnc,filetext="LINKSDISTBIN_CONNECTANCE")
   i <- 1
   minlinks <- 300
   for (ndist in lbinmags){
@@ -371,7 +497,6 @@ for (weightrf in lweightrf)
   }
   save_corr_plots(cml,cnl,filetext="LINKSDISTWEIGHT_LINKS")
   save_corr_plots(cmn,cnn,filetext="LINKSDISTWEIGHT_WEIGHT")
-  
   
   # Model comparison plots. All plots
   lm = c("RND","HNESTED")  # The first model will set the order
@@ -419,7 +544,7 @@ for (weightrf in lweightrf)
     geom_point(aes( adj_energy ,lpl_energy,fill=as.factor(model)),
                  color="transparent",shape=21, size=2,  alpha = 0.3)+
     geom_text_repel( aes(x=adj_energy, y=lpl_energy,
-                   label=gsub("SD0","SD",gsub("M0","M",gsub("HP0","HP",gsub("PL0","PL",gsub("M","",gsub("RA","",gsub("00","0",gsub("_","",network)))))))),
+                   label=shortenlabel(network),
                    color=as.factor(model)),max.overlaps=6,size=4)+
     geom_hline(yintercept=1,  
                color = "lightblue",linewidth=1, linetype="dotted", alpha=0.8)+
