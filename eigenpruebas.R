@@ -71,7 +71,7 @@ mor <- sq_adjacency(unmatrix, na, np)[[1]]
   mhyper <- sq_adjacency(mincidhyper, na, np)[[1]]
   #nlinks <- links
   print(paste("links",nlinks))
-  mincid <- create_bin_nested_model(na,np,nlinks) 
+  mincid <- create_perfect_nested_model(na,np,nlinks) 
   m <- sq_adjacency(mincid,na,np)[[1]]
   # mincid[5,5] <- 1
   # mincid[4,7] <- 0

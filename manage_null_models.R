@@ -177,9 +177,9 @@ dummynullmodel_build <- function(nodes_guild_a,nodes_guild_b,num_links,re,swap_p
   return(pmatrix)
 }
 
-null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
+null_model_process <- function(incidmatrix,re,weighted_network,num_links,num_nodes)
 {
-  mtx <- sq_adjacency(admatrix,re$num_guild_a,re$num_guild_b)
+  mtx <- sq_adjacency(incidmatrix,re$num_guild_a,re$num_guild_b)
   model_matrix <- mtx[[1]]  # binarized matrix
   model_weighted_matrix <- mtx[[2]] # original matrix
   nullNMP_spect <- eigen(model_matrix,only.values = TRUE)
@@ -210,7 +210,7 @@ null_model_process <- function(admatrix,re,weighted_network,num_links,num_nodes)
     adj_weighted_energy_nulls_NMP <- AdjweightedEnergy(nullNMP_weighted_spect$values)
   } 
   
-  nested_values <- nested(as.matrix(admatrix), c("NODF","wine","binmatnest"))
+  nested_values <- nested(as.matrix(incidmatrix), c("NODF","wine","binmatnest"))
   if (!weighted_network)
     calc_values <- list("model_matrix" = model_matrix,
                         "null_spect" = nullNMP_spect,
@@ -368,6 +368,77 @@ area_triangle <- function(base){
   return(base*(base+1)/2)
 }
 
+create_perfect_nested_model <- function(na,nb,nlinks){
+    if (nlinks > na*nb)
+      stop("FATAL ERROR. Number of links greater than product of number of species")
+    if (na > nb ){
+      nr <- nb
+      nc <- na
+    } else {
+      nr <- na
+      nc <- nb
+    }
+    x <- seq(0,1,by=1/(nc))
+    x <- x[2:(length(x))]
+    linkstr <- nc*(1+nr)/2
+    ftr <- nlinks/linkstr
+    y <- 1-(1-x^(1/ftr))^ftr
+    y <- rev(y)
+    pnr <- ceiling((y*nr))
+    pnr[pnr==0]=1
+    n = 0
+      while (n<5){
+        if (sum(pnr)!=nlinks){
+          pnr[2:(length(pnr)-1)] <- pnr[2:(length(pnr)-1)]*nlinks/sum(pnr)
+          pnr <- round(pnr)
+          pnr[pnr>nr]=nr
+        }
+        n<-n+1
+      }
+    mincid <- matrix(rep(0,nc*nr),nrow=nr,ncol=nc)
+    for (col in 1:ncol(mincid)){
+      mincid[1:pnr[col],col] <- 1
+    }
+    filllinks <- sum(mincid)
+    difflinks <- filllinks-nlinks
+    if (difflinks>0){
+      removelinks <- difflinks
+      remcol <- 2
+      while (removelinks > 0){
+        remrow <- max(which(mincid[,remcol]==1))
+        if (remrow==1){
+          remcol <- 2 
+          remrow <- max(which(mincid[,remcol]==1))
+        }
+        mincid[remrow,remcol] <- 0
+        removelinks <- removelinks - 1
+        remcol <- (remcol + 1)
+        if (remcol > ncol(mincid))
+          rmcol <- 2
+      }
+    } else if (difflinks<0){
+      addlinks <- -difflinks
+      addrow <- 2
+      while (addlinks > 0){
+        addcol <- max(which(mincid[addrow,]==1))+1
+        if (addcol>ncol(mincid)){
+          addrow <- addrow + 1
+        }
+        else {
+          mincid[addrow,addcol] <- 1
+          addlinks <- addlinks - 1
+          addrow <- (addrow + 1)
+          if (addrow > nrow(mincid))
+            addrow <- 2
+        }
+      }
+    }
+    if (ncol(mincid)>nrow(mincid))
+      mincid <- t(mincid)
+    return(mincid)
+  }
+  
+  
 create_bin_nested_model <- function(na,nb,nlinks){
   if (nlinks > na*nb)
     stop("FATAL ERROR. Number of links greater than product of number of species")
@@ -460,7 +531,9 @@ create_hypernested_model <- function(na,nb,links){
 }
 
 create_weighted_nested_model <- function(na,nb,nlinks,trfmatrix){
-  nmatrix <- create_bin_nested_model(na,nb,nlinks)
+  #nmatrix <- create_bin_nested_model(na,nb,nlinks)
+  nmatrix <- create_perfect_nested_model(na,nb,nlinks)
+  
   empmatrix <- trfmatrix
   nweight <- sum(empmatrix)
   marginal_rows <- rowSums(nmatrix)/sum(nmatrix)
@@ -484,7 +557,9 @@ create_weighted_nested_model <- function(na,nb,nlinks,trfmatrix){
 }
 
 create_weighted_nested_model_binom <- function(na,nb,nlinks){
-  nmatrix <- create_bin_nested_model(na,nb,nlinks)
+  #nmatrix <- create_bin_nested_model(na,nb,nlinks)
+  nmatrix <- create_perfect_nested_model(na,nb,nlinks)
+  
   empmatrix <- result_analysis$matrix
   nweight <- sum(empmatrix)
   marginal_rows <- rowSums(nmatrix)/sum(nmatrix)
@@ -536,7 +611,8 @@ process_nested_model_bin <- function(nodes_a,nodes_b,num_links,hypernested=TRUE)
     nstmodel <- create_hypernested_model(nodes_a,nodes_b,num_links)
     pref <- "Hyper"
   } else {
-    nstmodel <- create_bin_nested_model(nodes_a,nodes_b,num_links)
+    #nstmodel <- create_bin_nested_model(nodes_a,nodes_b,num_links)
+    nstmodel <- create_perfect_nested_model(nodes_a,nodes_b,num_links)
     pref <- "Soft"
   }
   if (nodes_a<nodes_b)
@@ -881,7 +957,7 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
             message("Here's the original error message:")
             message(conditionMessage(cond))
             # Choose a return value in case of error
-            NA
+            return(NA)
           }
         )
         if (class(result) != "try-error") {   # Null model succesfully generated

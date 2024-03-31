@@ -121,8 +121,8 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   pd_lpl_energy <- plot_distributions(nnm$modresults,"lpl_energy","Laplacian energy",nnm$bmag$lpl_energy,netw,fract_dummy,nestedv=nnm$pnms$nstlpl_energy,hypernestedv=nnm$pnm$nstlpl_energy)
   pd_energy <- plot_distributions(nnm$modresults,"adj_energy","Adj. Energy",nnm$bmag$adj_energy,netw,fract_dummy,nestedv=nnm$pnms$nstadj_energy,hypernestedv=nnm$pnm$nstadj_energy)
   if (nnm$weighted_network){
-    wmed <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
-    winf <- ( pd_weighted_spect_rad$pimage | pd_weighted_adj_energy$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
+    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
+    winf <- (pd_weighted_adj_energy$pimage |  pd_weighted_spect_rad$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
     wtot <- (wmed/ winf) + plot_layout(heights = c(0.5,0.5))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))
@@ -130,7 +130,7 @@ plot_all_distr <- function(nname,plotzigs,nnm){
     plheight <- 10
   } else {
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum)
-    winf <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage)
+    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage)
     wtot <- winf
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5))) 
@@ -147,8 +147,8 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   if (nnm$weighted_network){
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum | pl_lpl_weighted_spectrum)
     
-    wmed <- (pd_spect_rad$pimage | pd_energy$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
-    winf <- (pd_weighted_spect_rad$pimage | pd_weighted_adj_energy$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
+    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
+    winf <- (pd_weighted_adj_energy$pimage | pd_weighted_spect_rad$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
     wtot <- (wsup / wmed/ winf) + plot_layout(heights = c(0.33,0.33,0.33))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))
@@ -188,8 +188,8 @@ plot_ziggurats <- function(nnm,netw,dirnulls,dirdata,odir){
   result_analysis <- analyze_network(directory = dirdata, filenull, guild_a = "Plant", guild_b = "Pollinator", only_NODF = TRUE)
   pgr_null <- ziggurat_graph(dirdata,filenull,plotsdir=pdir,print_to_file = TRUE,show_title = FALSE,weighted_links = "log10")
   
-  plot_null_model_zigg(nstmodel,"HNESTED",netw,dirnulls,pdir)
-  
+  plot_null_model_zigg(nnm$pnm$nstmodel,"HNESTED",netw,dirnulls,pdir)
+  plot_null_model_zigg(nnm$pnms$nstmodel,"NESTED",netw,dirnulls,pdir)
   for (tmodel in nnm$mnames)
     plot_null_model_zigg(nnm$model_full[[tmodel]],tmodel,netw,dirnulls,pdir)
   if (nnm$weighted_network)

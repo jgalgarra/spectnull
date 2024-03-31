@@ -1,16 +1,16 @@
-debugpref <- ""
+debugpref <- "DEB"
 ppi <- 100
 options( warn = -1 )
 datadir <- "data/"
 dataprocessed <- "dataprocessed/"
-lweightrf <- c("none")#c("sqrt","ln","none")
+lweightrf <- c("none")#,"sqrt","ln")
 dbaseb <- "smodels/"
 odirb <- "plots/"
 rdirb <- "results/"
 dirnullsb <- "nullmatrix/"
 # Configuration parameters
 seed <- 122
-num_experiments <- 50
+num_experiments <- 5
 ignore_GC_results <- FALSE # Ignore the results of Giant Component files
 plottofile <- TRUE # Save individual network distributions plot
 plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are

@@ -46,7 +46,7 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 #
 
 # Here, the list of data files to process
-filenames <- Sys.glob(paste0(datadir,"*_PL_002*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
 for (netw in (lnetw)){                 # Each network
