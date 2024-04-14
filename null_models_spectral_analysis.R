@@ -12,8 +12,8 @@ source("manage_null_models.R")
 INCOMPLETE_MODEL_VALUE <<- -1
 
 network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesbin,mnamesweighted,datadir,rdir,odir,dirnulls,
-                                            guild_a_label = "Plant", guild_b_label = "Pollinator",min_links=20,
-                                            plottofile=TRUE,plotzigs=FALSE,networkmagsfile="NetworkMagnitudes.csv")
+                                            guild_a_label = "Plant", guild_b_label = "Pollinator",min_links=MIN_LINKS,
+                                            plottofile=TRUE,plotzigs=FALSE,networkmagsfile=NetworkMagsFile)
 {
   create_dirs(weightrf)
   print(paste("Network:",netw,"transform",weightrf))
@@ -45,13 +45,22 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 #
 #
 
-# Here, the list of data files to process
+dbase <- paste0(debugpref,dbaseb)
+if (cold_start){
+  inp <- readline(paste("The script is configured to remove all results stored at",dbase,". Are you sure (Y/N)? "))
+  inp <- as.character(inp)
+  if (inp=="Y")
+    unlink(dbase, recursive=TRUE)
+  else
+    stop("OK, cancelled mission!")
+}
+  # Here, the list of data files to process
 filenames <- Sys.glob(paste0(datadir,"*_*.csv"))
 # Network names
 lnetw <- gsub(datadir,"",filenames)
-for (netw in (lnetw)){                 # Each network
+for (netw in (lnetw)){                 # Each nesdtwork
   for (weightrf in lweightrf)
     network_null_spectral_distances(netw,weightrf,numexperiments,mnamesbin,mnamesweighted,datadir,rdir,odir,dirnulls,
-                                              guild_a_label = "Plant", guild_b_label = "Pollinator",min_links=20,
-                                              plottofile=TRUE,plotzigs=plotzigs,networkmagsfile="NetworkMagnitudes.csv")
+                                              guild_a_label = "Plant", guild_b_label = "Pollinator",min_links=MIN_LINKS,
+                                              plottofile=TRUE,plotzigs=plotzigs,networkmagsfile=NetworkMagsFile)
 }

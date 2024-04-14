@@ -18,10 +18,13 @@ create_datamodels <- function(weighted_network,networkspect,pnm,pnms,pnw){
   datamod <- rbind(datamod,data.frame("values"=pnm$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstlpl_energy,"ind"="lpl_energy","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnm$nstadj_energy,"ind"="adj_energy","MODEL"="HNESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnm$nstalgebraic_connectivity,"ind"="algebraic_connectivity","MODEL"="HNESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstspect_rad,"ind"="spect_rad","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstlplspect_rad,"ind"="lpl_spect_rad","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstlpl_energy,"ind"="lpl_energy","MODEL"="NESTED" ))
   datamod <- rbind(datamod,data.frame("values"=pnms$nstadj_energy,"ind"="adj_energy","MODEL"="NESTED" ))
+  datamod <- rbind(datamod,data.frame("values"=pnms$nstalgebraic_connectivity,"ind"="algebraic_connectivity","MODEL"="NESTED" ))
+  
   
   if (weighted_network){
     datamod <- rbind(datamod,data.frame("values"=pnw$weightednstspect_rad,"ind"="spect_rad_weighted","MODEL"="WNESTED" ))
@@ -378,24 +381,37 @@ create_perfect_nested_model <- function(na,nb,nlinks){
       nr <- na
       nc <- nb
     }
-    x <- seq(0,1,by=1/(nc))
-    x <- x[2:(length(x))]
-    linkstr <- nc*(1+nr)/2
-    ftr <- nlinks/linkstr
-    y <- 1-(1-x^(1/ftr))^ftr
-    y <- rev(y)
-    pnr <- ceiling((y*nr))
-    pnr[pnr==0]=1
-    n = 0
-      while (n<5){
+    conn <- nlinks/(nr*nc)     # Connectance
+    x <- seq(1,nc,by=1)
+    k <- (1/conn)*((1-conn)/conn)
+    pnr <- rev(nr*(1-(1-((x-1)/(nc-1))^(k*conn))))
+    pnr <- pnr+1
+    pnr[1] <- pnr[1] - 1
+    pnr[2:(length(pnr)-1)]<- round(pnr[2:(length(pnr)-1)]*(nlinks-nr-1)/sum(pnr[2:(length(pnr)-1)]))
+    pnr[pnr>nr] <- nr
+    prevdifflinks <- 0
+    filllinks <- sum(pnr)
+    difflinks <- filllinks-nlinks
+    if (conn<1)  {
+      n = 0
+      while ((n<10) && (prevdifflinks!=difflinks)){
+        #print(paste("n",n,"nlinks",nlinks,"difflinks",difflinks))
         if (sum(pnr)!=nlinks){
-          pnr[2:(length(pnr)-1)] <- pnr[2:(length(pnr)-1)]*nlinks/sum(pnr)
-          pnr <- round(pnr)
-          pnr[pnr>nr]=nr
+          pnr[2:(length(pnr))] <- round(pnr[2:(length(pnr))]*(nlinks-nr)/sum(pnr[2:(length(pnr))]))
+
+          pnr[pnr>nr] <- nr
+          pnr[pnr==0]=1
         }
+
         n<-n+1
+        prevdifflinks <- difflinks
+        difflinks <- sum(pnr)-nlinks
       }
+
+    }
+
     mincid <- matrix(rep(0,nc*nr),nrow=nr,ncol=nc)
+    pnr <- rev(sort(pnr))
     for (col in 1:ncol(mincid)){
       mincid[1:pnr[col],col] <- 1
     }
@@ -433,6 +449,10 @@ create_perfect_nested_model <- function(na,nb,nlinks){
         }
       }
     }
+    if (sum(abs(rev(sort(colSums(mincid)))-colSums(mincid)))>0)
+      mincid<-mincid[,rev(order(colSums(mincid)))]
+    if (sum(abs(rev(sort(rowSums(mincid)))-rowSums(mincid)))>0)
+      mincid<-mincid[rev(order(rowSums(mincid))),]
     if (ncol(mincid)>nrow(mincid))
       mincid <- t(mincid)
     return(mincid)
@@ -631,10 +651,14 @@ process_nested_model_bin <- function(nodes_a,nodes_b,num_links,hypernested=TRUE)
     nstlapl_matrix[i,i] <- nstsumweights[i]
   nstlpl_spect = eigen(nstlapl_matrix,only.values = TRUE)
   nstlplspect_rad <- nstlpl_spect$values[1]
+  nstalgebraic_connectivity <- sort(nstlpl_spect$values)[2]
   nstlpl_energy <- LaplEnergy(nstlpl_spect$values,sum(nstmodel>0),num_nodes)
   nnst <- nested(as.matrix(nstmodel), c("NODF","wine","binmatnest"))
-  calc_values <- list("nstmodel"=nstmodel,"nnst"=nnst,"nstadj_spect" = nstadj_spect, "nstspect_rad" = nstspect_rad,
-                      "nstadj_energy" = nstadj_energy, "nstlpl_spect"=nstlpl_spect,"nstlplspect_rad"=nstlplspect_rad, "nstlpl_energy" = nstlpl_energy)
+  calc_values <- list("nstmodel"=nstmodel,"nnst"=nnst,
+                      "nstalgebraic_connectivity"=nstalgebraic_connectivity,"nstadj_spect" = nstadj_spect, 
+                      "nstspect_rad" = nstspect_rad,"nstadj_energy" = nstadj_energy, 
+                      "nstlpl_spect"=nstlpl_spect,"nstlplspect_rad"=nstlplspect_rad, 
+                      "nstlpl_energy" = nstlpl_energy)
   return(calc_values)
 }
 
@@ -997,4 +1021,15 @@ store_nested_values <- function(dfnested){
                                         "binmatnest.temperature"=p$resp$binmatnest.temperature,"links"= sum(p$incidmatrix>0),"totalweight"= sum(p$incidmatrix)))
   return(dfnested)
 }
-
+debugp<-FALSE
+if(debugp){
+  ini<-284
+  p <- create_perfect_nested_model(38,11,ini)
+  fin <- ini+3
+  for (i in seq(ini+1,fin)){
+    q<-p
+    print(i)
+    p <- create_perfect_nested_model(38,11,i)
+    #print(p-q)
+  }
+}

@@ -58,6 +58,7 @@ plot_bipartite <- function(bg, aspect_ratio = 9/35, vframecolor = "grey70", vlab
 
 # Plots the probability distributions of all models for a particular magnitude and network
 plot_distributions <- function(mresults,magnitude,stitle,vtitle,nname,fdummy,nlinks=0,nestedv="",hypernestedv=""){
+ print(magnitude)
   mdls <- names(mresults)
   col <- which(names(mresults[[1]])==magnitude)
   df_nulls <- data.frame("vals"=mresults[[1]][,col],"type"=mdls[[1]])
@@ -120,21 +121,23 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   pd_lpl_spect_rad <- plot_distributions(nnm$modresults,"lpl_spect_rad","Lpl Spectral radius",nnm$bmag$lpl_spect$values[1],netw,fract_dummy,nestedv=nnm$pnms$nstlplspect_rad,hypernestedv=nnm$pnm$nstlplspect_rad)
   pd_lpl_energy <- plot_distributions(nnm$modresults,"lpl_energy","Laplacian energy",nnm$bmag$lpl_energy,netw,fract_dummy,nestedv=nnm$pnms$nstlpl_energy,hypernestedv=nnm$pnm$nstlpl_energy)
   pd_energy <- plot_distributions(nnm$modresults,"adj_energy","Adj. Energy",nnm$bmag$adj_energy,netw,fract_dummy,nestedv=nnm$pnms$nstadj_energy,hypernestedv=nnm$pnm$nstadj_energy)
+  pd_algebraic_connectivity <- plot_distributions(nnm$modresults,"algebraic_connectivity","Alg. connectivity",sort(nnm$bmag$lpl_spect$values)[2],netw,fract_dummy,nestedv=nnm$pnms$nstalgebraic_connectivity,hypernestedv=nnm$pnm$nstalgebraic_connectivity)
+  modresults <- nnm$modresults
   if (nnm$weighted_network){
-    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
+    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage | pd_algebraic_connectivity$pimage) 
     winf <- (pd_weighted_adj_energy$pimage |  pd_weighted_spect_rad$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
     wtot <- (wmed/ winf) + plot_layout(heights = c(0.5,0.5))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))
-    plwidth <- 17
+    plwidth <- 21
     plheight <- 10
   } else {
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum)
-    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage)
+    winf <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage| pd_algebraic_connectivity$pimage)
     wtot <- winf
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5))) 
-    plwidth <- 17
+    plwidth <- 21
     plheight <- 5
   }
   sweight <- "WEIGHTED"
@@ -147,8 +150,8 @@ plot_all_distr <- function(nname,plotzigs,nnm){
   if (nnm$weighted_network){
     wsup <- (pl_adj_spectrum | pl_lpl_spectrum | pl_lpl_weighted_spectrum)
     
-    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage) 
-    winf <- (pd_weighted_adj_energy$pimage | pd_weighted_spect_rad$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage )
+    wmed <- (pd_energy$pimage | pd_spect_rad$pimage | pd_lpl_spect_rad$pimage | pd_lpl_energy$pimage | pd_algebraic_connectivity$pimage) 
+    winf <- (pd_weighted_adj_energy$pimage | pd_weighted_spect_rad$pimage | pd_weighted_lpl_spect_rad$pimage | pd_weighted_lpl_energy$pimage  )
     wtot <- (wsup / wmed/ winf) + plot_layout(heights = c(0.33,0.33,0.33))
     plot_annotation(title = nname,
                     theme = theme(plot.title = element_text(size = 16,hjust=0.5)))

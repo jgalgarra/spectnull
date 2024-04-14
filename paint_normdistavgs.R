@@ -184,7 +184,8 @@ plot_corr_nor_magnitude <- function(normdists,ndist,ymag,yscale="",cutoff_links=
   p <- ggplot(data=dp,aes(x=meannormdist,y=dp[[ymag]]))+geom_point(size=3)+
     xlab("Normalized distance")+ylab(ymag)+xlim(c(min(dp$meannormdist),max(dp$meannormdist)))+
     #scale_x_sqrt()+
-    ggtitle(sprintf("Normalized %s Correlation %.2f",ndist,cor(dp[[ymag]],dp$meannormdist,method="pearson")))+theme_bw()
+    ggtitle(sprintf("Normalized %s Correlation Spearman: %.2f",ndist,
+                    cor(dp[[ymag]],dp$meannormdist,method="spearman")))+theme_bw()
   if(yscale=="log")
     p <- p + scale_y_log10()
   
@@ -198,7 +199,8 @@ plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale="",cutoff_links
   p <- ggplot(data=nmags,aes(x=nmags[[xmag]],y=nmags[[ymag]]))+
     geom_point(size=3)+
     xlab("Magnitude")+ylab(ymag)+
-    ggtitle(sprintf("%s Correlation %.2f",ndist,cor(nmags[[xmag]],nmags[[ymag]],method="pearson")))+theme_bw()
+    ggtitle(sprintf("Normalized %s Correlation Spearman: %.2f",xmag,
+                    cor(nmags[[xmag]],nmags[[ymag]],method="spearman")))+theme_bw()
   if(xscale=="log")
     p <- p + scale_x_log10()
   if(yscale=="log")
@@ -228,20 +230,23 @@ plot_magnitudes_relationship <- function(dfall){
                          label=shortenlabel(network)),
                          max.overlaps=6,size=3)+
         ylab("Norm. Lapl. spectral radius")+xlab("Norm. spectral radius")+
-        ggtitle(sprintf("Corr: %.2f",cor(dfrads$spect_rad,dfrads$lpl_spect_rad,method="pearson")))+theme_bw()
+             ggtitle(sprintf("Corr Spearman: %.2f ",
+                    cor(dfrads$spect_rad,dfrads$lpl_spect_rad,method="spearman")))+theme_bw()
   ple <- ggplot(data=dfrads,aes(x=adj_energy,y=lpl_energy))+geom_point()+
     geom_text_repel(data=dfrads, aes(x=adj_energy, y=lpl_energy,
                                      label=shortenlabel(network)),
                     max.overlaps=6,size=3)+
     ylab("Laplacian Energy")+xlab("Adjacency Energy")+
-    ggtitle(sprintf("Corr: %.2f",cor(dfrads$adj_energy,dfrads$lpl_energy,method="pearson")))+theme_bw()
+    ggtitle(sprintf("Corr Spearman: %.2f ",
+                    cor(dfrads$adj_energy,dfrads$lpl_energy,method="spearman")))+theme_bw()
   dfalnonnull <- dfrads[dfrads$algebraic_connectivity>0.000001,]
   plac <- ggplot(data=dfalnonnull,aes(x=lpl_spect_rad,y=algebraic_connectivity))+geom_point()+
     geom_text_repel(data=dfalnonnull, aes(x=lpl_spect_rad, y=algebraic_connectivity,
                                      label=shortenlabel(network)),
                     max.overlaps=6,size=3)+
     xlab("Algebraic connectivity")+ylab("Norm. Lpl. spectral radius")+
-    ggtitle(sprintf("Corr: %.2f",cor(dfrads$lpl_spect_rad,dfrads$algebraic_connectivity,method="pearson")))+theme_bw()
+    ggtitle(sprintf("Corr Spearman: %.2f",
+                  cor(dfrads$lpl_spect_rad,dfrads$algebraic_connectivity,method="spearman")))+theme_bw()
   
   
   return(list(plr,plac,ple))

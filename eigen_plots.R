@@ -44,16 +44,13 @@ create_blocked_model <- function(na,nb,links){
   return(mhyp)
 }
 
-minmaxnorm <- function(val,minv,maxv){
-  return((val-minv)/(maxv-minv))
-}
 
 dfnest <- data.frame("species"=c(),"links"=c(),"Lplspectrad"=c())#,"binmatnest"=c())
 dfhyper <- dfnest
 dfrandom <- dfnest
 dfnestbin <- dfnest
-na=50 # poner na mayor que np
-np=50 
+na=35 # poner na mayor que np
+np=27 
 softnest=TRUE
 upperlinks = round(na*np)
 for (nlinks in seq((na+np-1),upperlinks)){  

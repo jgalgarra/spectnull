@@ -5,9 +5,6 @@
 library("data.table")
 source("config_values.R")
 
-minmaxnorm <- function(val,minv,maxv){
-  return((val-minv)/(maxv-minv))
-  }
 
 
 find_reference <- function(values_magnitudes,mag,model,stat="mean"){
