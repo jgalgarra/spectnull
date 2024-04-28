@@ -199,7 +199,7 @@ plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale="",cutoff_links
   p <- ggplot(data=nmags,aes(x=nmags[[xmag]],y=nmags[[ymag]]))+
     geom_point(size=3)+
     xlab("Magnitude")+ylab(ymag)+
-    ggtitle(sprintf("Normalized %s Correlation Spearman: %.2f",xmag,
+    ggtitle(sprintf("%s Correlation Spearman: %.2f",xmag,
                     cor(nmags[[xmag]],nmags[[ymag]],method="spearman")))+theme_bw()
   if(xscale=="log")
     p <- p + scale_x_log10()
@@ -210,9 +210,12 @@ plot_corr_magnitude <- function(nmags,xmag,ymag,xscale="",yscale="",cutoff_links
   return(p)
 }
 
-save_corr_plots <- function(ckp,cnp,filetext="",w=24,h=12)
+save_corr_plots <- function(ckp,cnp,filetext="",w=24,h=12,ignore_second_row=FALSE)
 {
-  pd <- ( (ckp[[1]] | ckp[[2]] | ckp[[3]] | ckp[[4]])/ (cnp[[1]] | cnp[[2]] | cnp[[3]] | cnp[[4]]) )
+  if (ignore_second_row)
+    pd <- (ckp[[1]] | ckp[[2]] | ckp[[3]] )
+  else
+    pd <- ( (ckp[[1]] | ckp[[2]] | ckp[[3]] | ckp[[4]])/ (cnp[[1]] | cnp[[2]] | cnp[[3]] | cnp[[4]]) )
   png(paste0(pldir,filetext,".png"),width=w*ppi,height=h*ppi,res=ppi)
   print(pd)
   dev.off()
@@ -267,13 +270,18 @@ create_references_df <-function(distnet,lmagnitudes,refmodel){
 }
 
 set.seed(122)
+ppi=300
 for (weightrf in lweightrf)
 {
-  print(paste("Transformation",weightrf))
   rdir <- paste0(debugpref,dbaseb,weightrf,"/",rdirb)
   resultsdir <- rdir
   normresults <- paste0(rdir,"normalized/")
   odir <- paste0(debugpref,dbaseb,weightrf,"/",odirb)
+  pldir <- paste0(odir,"/analysis/")
+  if (!dir.exists(pldir))
+    dir.create(pldir)
+  print(paste("Transformation",weightrf))
+
   networkmags <- fread(paste0(resultsdir,"networkmagnitudes.csv"))
   normdistavgs <- fread(paste0(normresults,"meannormdistances.csv"))
   alldistances <- fread(paste0(normresults,"ALLNORMALIZED.csv"))
@@ -294,8 +302,10 @@ for (weightrf in lweightrf)
     normdistavgs <- normdistavgs[!(normdistavgs$network %in% discnets),]
     nestedmeasures <- nestedmeasures[!(nestedmeasures$network %in% discnets),]
   }
+  
   lbinmags <- c("spect_rad","adj_energy","lpl_spect_rad","lpl_energy")
   lweightmags <- c("spect_rad_weighted","adj_weighted_energy","lpl_spect_rad_weighted","lpl_weighted_energy")
+  
   # Compute relative distance to netork
   alldistances$reldistnetwork <- -5
   alldistances$reldistnested <- -5
@@ -320,7 +330,20 @@ for (weightrf in lweightrf)
     }
     alldistances[alldistances$network==myn,] <- distnet
   }
-    # Global boxplots
+  
+  # Algebraic connectirvity histogram
+  
+  dfalg <- networkmags[networkmags$Model=="NETWORK" & networkmags$algebraic_connectivity>0.000001,]
+  plalgconn <- ggplot(data=dfalg,aes(x=algebraic_connectivity,fill = cut(algebraic_connectivity, 100)))+geom_histogram()+stat_bin()+
+    geom_vline(xintercept=median(dfalg$algebraic_connectivity),  
+               color = "black",linewidth=0.75, linetype="dashed", alpha=0.8)+
+    theme_bw()+theme(legend.position="none")
+  
+  png(paste0(pldir,"ALGCONN_HISTOGRAM.png"),width=5*ppi,height=5*ppi,res=ppi)
+  print(plalgconn)
+  dev.off()
+  
+  # Global boxplots
   
   z <- vector(mode='list', length=6)
   j = 1
@@ -367,14 +390,9 @@ for (weightrf in lweightrf)
       j <- j + 1
     } 
   }
-  #allz <- (z[[1]] | z[[2]] | z[[3]]) / (z[[4]] | z[[5]] | z[[6]])
   
   allbinz <- (z[[1]] | z[[2]] | z[[3]])
   
-  pldir <- paste0(odir,"/analysis/")
-  if (!dir.exists(pldir))
-    dir.create(pldir)
-  ppi=300
   png(paste0(pldir,"ALLBINZ.png"),width=14*ppi,height=6*ppi,res=ppi)
   print(allbinz)
   dev.off()
@@ -402,7 +420,6 @@ for (weightrf in lweightrf)
     recordnet <- normdistavgs[normdistavgs$network==networksnesteddata$network[i] &normdistavgs$MODEL=="NETWORK" &normdistavgs$disttype=="lpl_energy",]
     networksnesteddata$lpl_energy[i] <- recordnet$meannormdist
   }
-  #binarynets <- networktypes[networktypes$type=="BINARY",]$network
   binarynets <- networktypes$network
   
   nodfplt_s <- NESTplot(networksnesteddata,networksnesteddata$binary_spect_rad,ylabel="Normalized spectral radius distance")
@@ -483,6 +500,15 @@ for (weightrf in lweightrf)
   save_corr_plots(cml,cnl,filetext="LINKSDISTBIN_LINKS")
   save_corr_plots(cmn,cnn,filetext="LINKSDISTBIN_NODES")
   save_corr_plots(cmc,cnc,filetext="LINKSDISTBIN_CONNECTANCE")
+  
+  calgc <- vector(mode='list', length=3)
+  algmags <- nmags[nmags$algebraic_connectivity>0.00001,]
+  calgc[[1]] <- plot_corr_magnitude(algmags,"algebraic_connectivity","Links")
+  calgc[[2]] <- plot_corr_magnitude(algmags,"algebraic_connectivity","Nodes")
+  calgc[[3]] <- plot_corr_magnitude(algmags,"algebraic_connectivity","Connectance")
+  
+  save_corr_plots(calgc,NULL,filetext=paste0("CORR_ALGCONN"),w=24,h=8,ignore_second_row=TRUE)
+  
   i <- 1
   minlinks <- 300
   for (ndist in lbinmags){

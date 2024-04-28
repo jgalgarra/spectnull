@@ -41,7 +41,7 @@ network_null_spectral_distances <- function(netw,weightrf,numexperiments,mnamesb
 
 ######################################################################################################
 # 
-# PROGRAM BODY
+# PROGKRAM BODY
 #
 #
 

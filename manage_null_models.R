@@ -919,7 +919,10 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
                                                       "binmatnest.temperature"=pnm$nnst["binmatnest.temperature"],
                                                       "links"= sum(pnm$nstmodel>0),
                                                       "totalweight"= sum(pnm$nstmodel)))
-  save_null_model(netw,dirnulls,pnm$nstmodel,"HNESTED",pnm$nstadj_spect,pnm$nstlpl_spect)
+  nmatrix <- pnm$nstmodel
+  if (nrow(orimatrix)!=nrow(pnm$nstmodel))
+    nmatrix <- t(nmatrix)
+  save_null_model(netw,dirnulls,nmatrix,"HNESTED",pnm$nstadj_spect,pnm$nstlpl_spect)
   #Soft nested model
   pnms <- process_nested_model_bin(nodes_a, nodes_b, num_links, hyper = FALSE)
   dfnested <- rbind(dfnested,#bmag$dfnested,
@@ -929,8 +932,10 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
                                                       "binmatnest.temperature"=pnms$nnst["binmatnest.temperature"],
                                                       "links"= sum(pnm$nstmodel>0),
                                                       "totalweight"= sum(pnms$nstmodel)))
-  save_null_model(netw,dirnulls,pnms$nstmodel,"NESTED",pnms$nstadj_spect,pnms$nstlpl_spect)
-  
+  nmatrix <- pnms$nstmodel
+  if (nrow(orimatrix)!=nrow(pnms$nstmodel))
+    nmatrix <- t(nmatrix)
+  save_null_model(netw,dirnulls,nmatrix,"NESTED",pnms$nstadj_spect,pnms$nstlpl_spect)
   
   # Weighted magnitudes, only for weighted networks
   if (weighted_network){
@@ -948,7 +953,11 @@ process_network_null_models <- function(netw,result_analysis,num_experiments,mna
     pnw <- NULL
   }
   
-  save_null_model(netw,dirnulls,pnm$nstmodel,"WNESTED",pnm$nstadj_spect,pnm$nstlpl_spect,
+  nmatrix <- pnm$nstmodel
+  if (nrow(orimatrix)!=nrow(pnm$nstmodel))
+    nmatrix <- t(nmatrix)
+  
+  save_null_model(netw,dirnulls,nmatrix,"WNESTED",pnm$nstadj_spect,pnm$nstlpl_spect,
                   wadj_spect_val=pnw$weightednstadj_spect,wlpl_spect_val=pnw$weightednstlpl_spect)
   networkspect <- create_networkspect_dataframe(weighted_network,bmag,wmag)
   mnames <- mnamesbin

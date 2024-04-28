@@ -87,7 +87,7 @@ for (nlinks in seq((na+np-1),upperlinks)){
     m <- sq_adjacency(mincid,np,na)[[1]]
   else
     m <- sq_adjacency(mincid,na,np)[[1]]
-  mlapl <- create_laplacian_matrix(m)
+ 
   nm <- nested(mincid,c("binmatnest","NODF"))
   dfnest <- rbind(dfnest, data.frame("species"=na+np,"links"=nlinks,"spectrad"=eigen(m)$values[1],
                                      "binmatnest"=nm[[1]],"NODF"=nm[[2]],
