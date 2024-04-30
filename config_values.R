@@ -9,6 +9,7 @@ odirb <- "plots/"
 rdirb <- "results/"
 dirnullsb <- "nullmatrix/"
 eigenplots <- "eigenplots/"
+matrixplots <- "matrixplots/"
 # Configuration parameters
 MIN_LINKS <- 20  # Smaller networks are discarded
 seed <- 122
@@ -32,11 +33,13 @@ create_dirs <- function(weightrf){
   odir <<- paste0(dbase,odirb)
   rdir <<- paste0(dbase,rdirb)
   eiplotsdir <<- paste0(dbase,eigenplots)
+  matrixplotsdir <<- paste0(dbase,matrixplots)
   dirnulls <<- paste0(dbase,dirnullsb)
   dir.create(odir, showWarnings = FALSE)
   dir.create(rdir, showWarnings = FALSE)
   dir.create(dirnulls, showWarnings = FALSE)
   dir.create(eiplotsdir, showWarnings = FALSE)
+  dir.create(matrixplotsdir, showWarnings = FALSE)
 }
 
 minmaxnorm <- function(val,minv,maxv){

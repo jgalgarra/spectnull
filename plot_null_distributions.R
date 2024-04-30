@@ -12,11 +12,11 @@ plot_distr_null <- function(df,nvalue,nlinks=0,networkname="",title="",nestedval
   plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.75,alpha=0.5)+
           ggtitle(title)
   if (nestedvalue!="")
-    plot <- plot+geom_vline(xintercept = nestedvalue,color = "red4", size=0.75,alpha=0.5,linetype="dotted")
+    plot <- plot+geom_vline(xintercept = nestedvalue,color = "magenta", size=0.75,alpha=0.5,linetype="dotted")
   if (hypernestedvalue!="")
-    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "magenta", size=0.75,alpha=0.2)
-  if (nlinks>0)
-    plot <- plot+geom_vline(xintercept = sqrt(nlinks),color = "grey7", size=0.75,alpha=0.5,linetype="dotted")
+    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "red4", size=0.75,alpha=0.2)
+  # if (nlinks>0)
+  #   plot <- plot+geom_vline(xintercept = sqrt(nlinks),color = "grey7", size=0.75,alpha=0.5,linetype="dotted")
   
   return(plot)
 }

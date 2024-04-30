@@ -1032,13 +1032,15 @@ store_nested_values <- function(dfnested){
 }
 debugp<-FALSE
 if(debugp){
-  ini<-284
-  p <- create_perfect_nested_model(38,11,ini)
+  na=76
+  np=31
+  ini<-455
+  p <- create_perfect_nested_model(na,np,ini)
   fin <- ini+3
   for (i in seq(ini+1,fin)){
     q<-p
     print(i)
-    p <- create_perfect_nested_model(38,11,i)
+    p <- create_perfect_nested_model(na,np,i)
     #print(p-q)
   }
 }

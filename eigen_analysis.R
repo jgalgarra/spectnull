@@ -23,7 +23,7 @@ prettyfy <- function(pl){
         axis.title = element_text(size = 13)))
 }
 
-filenames <- Sys.glob(paste0(datadir,"*_HP_*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_HP_042_GC.csv"))
 lnetw <- gsub(".csv","",gsub(datadir,"",filenames))
 weightrf <- "none"
 liminfplconn <- 0.1
@@ -47,7 +47,7 @@ for (netw in lnetw){
     
     upperlinks <- na*np    
     
-    steplinks <- (max(1,(upperlinks %/% 1000)))
+    steplinks <- (max(1,1+(upperlinks %/% 1000)))
     lowerlinks <- (na+np-1)
     
 #     
@@ -57,7 +57,7 @@ for (netw in lnetw){
 
 
     for (nlinks in seq(lowerlinks,upperlinks,by=steplinks)){  
-      if (nlinks %% 20 == 0)
+      #if (nlinks %% 20 == 0)
         print(paste(nlinks,"out of",upperlinks,"connectance",nlinks/(na*np)))
       
       mincidhyper <- create_hypernested_model(na,np,nlinks)

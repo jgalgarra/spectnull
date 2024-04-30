@@ -45,7 +45,7 @@ normdistplot <- function(plotdata,disttype,rvalue){
     geom_jitter(aes( network ,normdist,fill=MODEL),position=position_jitter(0.1),
                 color="transparent",shape=21, size=1,  alpha = 0.3)+
     geom_point(data=plotdatanetwork,aes( network ,normdist,fill=MODEL),
-               color="transparent",shape=21, size=2,  alpha = 0.8)+
+               color="transparent",shape=21, size=2.5,  alpha = 0.8)+
     geom_hline(data = data.frame("val"=rvalue), aes(yintercept = val), 
                color = "black", size=0.75,alpha=0.5, linetype="dotted")+
     geom_hline(data = data.frame("val"=1-rvalue), aes(yintercept = val), 
@@ -55,23 +55,37 @@ normdistplot <- function(plotdata,disttype,rvalue){
     scale_fill_manual(name='Null model ', breaks=clist$lnames, values=clist$lcolors)+
     theme_bw()+theme(axis.text.x = element_text( size=8, angle = 85, hjust = 1),
                      panel.grid = element_line(size=0.1, linetype="dotted", colour="darkgrey"))
-    return(q)
+  return(q)
 }
 
 reldistplot <- function(avg_data,disttype){
   avg_data <- avg_data[!(avg_data$MODEL %in% c("VAZ","B/VAZ","SHUFFLE","B/SHUFFLE","SWAP","MGEN","PATEFIELD")),]
   clist <- get_colors(unique(avg_data$MODEL),colormodels) 
-  s <- ggplot(data=avg_data) +
+  data_network <- avg_data[avg_data$MODEL=="NETWORK",]
+  data_network$Connectance <- 0
+  for (i in 1:nrow(data_network)){
+    data_network$Connectance[i]<-nmags[nmags$Network==data_network$network[i],][1]$Connectance
+  }
+  data_network$Nodes <- 0
+  for (i in 1:nrow(data_network)){
+    data_network$Nodes[i]<-nmags[nmags$Network==data_network$network[i],][1]$Nodes
+  }
+  data_models <- avg_data[avg_data$MODEL!="NETWORK",]
+  s <- ggplot(data=data_models) +
     geom_point(aes( network ,avg,fill=MODEL),
-               color="transparent",shape=21, size=2.5,  alpha = 0.9)+
+               color="transparent",shape=22, size=2.5,  alpha = 0.7)+
+    # geom_point(data=data_network,aes( x=network ,y=avg,size=Connectance),
+    #            fill= unname(clist$lcolors["NETWORK"]),color="transparent",shape=21, alpha = 0.9)+
     scale_fill_manual(name='Null model ', breaks=clist$lnames, values=clist$lcolors)+
-    geom_hline(data = data.frame("val"=0), aes(yintercept = val), 
-               color = "blue", size=0.5,alpha=0.4)+
     xlab("Network")+ylab("Normalized relative distance null model-network")+
     ggtitle(disttype)+ guides(fill = guide_legend(override.aes = list(size=8,alpha=0.8)))+
     theme_bw()+theme(axis.text.x = element_text( size=8, angle = 85, hjust = 1),
     )
-  return(s)
+  sc <- s + geom_point(data=data_network,aes( x=network ,y=avg,size=Connectance),
+                       fill= unname(clist$lcolors["NETWORK"]),color="transparent",shape=21, alpha = 0.9)
+  sn <- s + geom_point(data=data_network,aes( x=network ,y=avg,size=Nodes),
+                       fill= unname(clist$lcolors["NETWORK"]),color="transparent",shape=21, alpha = 0.9)
+  return(list(sc,sn))
 }
 
 normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TRUE){
@@ -136,7 +150,10 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
       group_by(network)%>%
       summarise(medn = mean(normdist))
     plotdatanor$network <- factor(plotdatanor$network,levels=p[order(p$medn),]$network)
-    
+    plotdatanor$Connectance <- 0
+    for (i in 1:nrow(plotdatanor)){
+      plotdatanor$Connectance[i]<-nmags[nmags$Network==plotdatanor$network[i],][1]$Connectance
+    }
     rvalue=0
     if ((disttype=="adj_energy")||(disttype=="adj_weighted_energy"))
       rvalue=1
@@ -161,9 +178,13 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
       orderdata <- avg_data[avg_data$MODEL=="VAZ",]
     avg_data$network <- factor(avg_data$network,orderdata[order(orderdata$avg),]$network)
     s <- reldistplot(avg_data,disttype)
-    png(paste0(pldir,"RELDIST_NETWORK_DOT_",paste(disttype,collapse="-"),".png"),width=20*ppi,height=10*ppi,res=ppi)
-    print(s)
+    png(paste0(pldir,"RELDIST_NETWORK_DOT_",paste(disttype,collapse="-"),"_CONNECTANCE.png"),width=20*ppi,height=10*ppi,res=ppi)
+    print(s[[1]])
     dev.off()
+    png(paste0(pldir,"RELDIST_NETWORK_DOT_",paste(disttype,collapse="-"),"_NODES.png"),width=20*ppi,height=10*ppi,res=ppi)
+    print(s[[2]])
+    dev.off()
+    
     
     avg_data <- plotdata %>%
       group_by(network,MODEL)%>%
@@ -171,8 +192,11 @@ normandreldistplot <- function(alldistances,ldisttype,lm,lnetworktype,binmags=TR
     orderdata <- avg_data[avg_data$MODEL=="NETWORK",]
     avg_data$network <- factor(avg_data$network,orderdata[order(orderdata$avg),]$network)
     t <- reldistplot(avg_data,disttype)
-    png(paste0(pldir,"RELDIST_NESTED_DOT_",paste(disttype,collapse="-"),".png"),width=20*ppi,height=10*ppi,res=ppi)
-    print(t)
+    png(paste0(pldir,"RELDIST_NESTED_DOT_",paste(disttype,collapse="-"),"_CONNECTANCE.png"),width=20*ppi,height=10*ppi,res=ppi)
+    print(t[[1]])
+    dev.off()
+    png(paste0(pldir,"RELDIST_NESTED_DOT_",paste(disttype,collapse="-"),"_NODES.png"),width=20*ppi,height=10*ppi,res=ppi)
+    print(t[[2]])
     dev.off()
   }
 }

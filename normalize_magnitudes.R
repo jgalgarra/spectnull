@@ -7,7 +7,7 @@ source("config_values.R")
 
 
 
-find_reference <- function(values_magnitudes,mag,model,stat="mean"){
+find_reference <- function(values_magnitudes,mag,model,stat="median"){
   d <- values_magnitudes[(values_magnitudes$ind==mag) & (values_magnitudes$MODEL==model),]$values
   if (stat=="median")
     return(median(d))
