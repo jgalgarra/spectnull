@@ -4,7 +4,6 @@
 library("data.table")
 source("config_values.R")
 
-
 computemeandist <- function(alldistances,magnitude,netw){
   magnitude_data <- alldistances[(alldistances$ind==magnitude) & (alldistances$network==netw),]
   models <- unique(magnitude_data$MODEL)

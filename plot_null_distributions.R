@@ -1,3 +1,6 @@
+# Functions called from main script null_models_spectral_analysis
+
+
 plot_distr_null <- function(df,nvalue,nlinks=0,networkname="",title="",nestedvalue="",hypernestedvalue=""){
   lmodels <- unique(df$type)
   clist <- get_colors(lmodels,colormodels)
@@ -9,12 +12,12 @@ plot_distr_null <- function(df,nvalue,nlinks=0,networkname="",title="",nestedval
            panel.grid = element_blank(),
            legend.key.size = unit(0.3, 'cm'))+
      guides(fill=guide_legend(nrow=2, byrow=TRUE))
-  plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.75,alpha=0.5)+
+  plot <- plot+geom_vline(xintercept = nvalue,color = "blue", size=0.75,alpha=0.33)+
           ggtitle(title)
   if (nestedvalue!="")
-    plot <- plot+geom_vline(xintercept = nestedvalue,color = "magenta", size=0.75,alpha=0.5,linetype="dotted")
+    plot <- plot+geom_vline(xintercept = nestedvalue,color = "magenta", size=0.75,alpha=0.33)
   if (hypernestedvalue!="")
-    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "red4", size=0.75,alpha=0.2)
+    plot <- plot+geom_vline(xintercept = hypernestedvalue,color = "red4", size=0.75,alpha=0.5,linetype="dotted")
   # if (nlinks>0)
   #   plot <- plot+geom_vline(xintercept = sqrt(nlinks),color = "grey7", size=0.75,alpha=0.5,linetype="dotted")
   

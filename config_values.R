@@ -1,4 +1,4 @@
-debugpref <- ""
+debugpref <- "PRU"
 ppi <- 100
 options( warn = -1 )
 datadir <- "data/"
@@ -13,7 +13,7 @@ matrixplots <- "matrixplots/"
 # Configuration parameters
 MIN_LINKS <- 20  # Smaller networks are discarded
 seed <- 122
-num_experiments <- 30
+num_experiments <- 10
 ignore_GC_results <- FALSE # Ignore the results of Giant Component files
 plottofile <- TRUE # Save individual network distributions plot
 plotzigs <- FALSE  # Plotting ziggurats of all models is rather slow. So when TRUE magnitudes are

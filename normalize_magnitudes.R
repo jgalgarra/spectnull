@@ -1,5 +1,5 @@
-# Script to create a unique file of normalized distances ALLNORMALIZED.cand
-# an auxiliary file with the types of networks networtypes.csv
+# Script to create a unique file of normalized distances ALLNORMALIZED.csv and
+# an auxiliary file with the types of networks networktypes.csv
 # Run it after bipartite_graph_spectrum_NULL_random.R
 
 library("data.table")

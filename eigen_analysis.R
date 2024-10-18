@@ -1,5 +1,6 @@
 library(ggplot2)
 library(kcorebip)
+library("zoo")
 source("manage_null_models.R")
 source("config_values.R")
 library(patchwork)
@@ -23,7 +24,7 @@ prettyfy <- function(pl){
         axis.title = element_text(size = 13)))
 }
 
-filenames <- Sys.glob(paste0(datadir,"*_HP_042_GC.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_*.csv"))
 lnetw <- gsub(".csv","",gsub(datadir,"",filenames))
 weightrf <- "none"
 liminfplconn <- 0.1
@@ -47,16 +48,17 @@ for (netw in lnetw){
     
     upperlinks <- na*np    
     
-    steplinks <- (max(1,1+(upperlinks %/% 1000)))
+    steplinks <- (max(1,1+(upperlinks %/% 200)))
     lowerlinks <- (na+np-1)
     
-#     
-# lowerlinks <- round(0.07*na*np)
-#upperlinks <- round(0.3*na*np)
-# steplinks = 1
+    samplelinks <- seq(lowerlinks,upperlinks,by=steplinks)
+    if (!ndata$Links %in% samplelinks){                    # Include the empirical network number of links
+      samplelinks <- c(samplelinks,ndata$Links)
+      samplelinks <- sort(samplelinks)
+    }
 
-
-    for (nlinks in seq(lowerlinks,upperlinks,by=steplinks)){  
+    
+    for (nlinks in samplelinks){  
       #if (nlinks %% 20 == 0)
         print(paste(nlinks,"out of",upperlinks,"connectance",nlinks/(na*np)))
       
@@ -90,6 +92,8 @@ for (netw in lnetw){
                                         "AlgConnectivity"=rev(eigen(mlapl)$values)[2],
                                         "LplEnergy"=LaplEnergy(eigen(mlapl)$values,nlinks,na+np)))
       
+      
+      
       mincidrandom <- create_rnd_matrix(na,np,nlinks)
       if (na>np)
         mrandom <- sq_adjacency(mincidrandom,np,na)[[1]]
@@ -112,6 +116,36 @@ for (netw in lnetw){
     # dfblocked$Model="BLOCKED"
     dfall <- rbind(dfhyper,dfnest,dfrandom)
     
+    dfrand <- dfall[dfall$Model=="RND",]
+    dfhyper <- dfall[dfall$Model=="HYPERNESTED",]
+    
+    lrsr <- lm(dfrand$spectrad ~ dfrand$links)
+    lrlplsr <- lm(dfrand$Lplspectrad ~ dfrand$links)
+    lrlplsrhyp <- lm(dfhyper$Lplspectrad ~ dfhyper$links)
+    lr_lplsr_sr <- lm(dfrand$Lplspectrad ~ dfrand$spectrad)
+    predsrrnd <- unname(predict(lrsr, data.frame(dfrand$links)))
+    predlplsrrnd <- unname(predict(lrlplsr, data.frame(dfrand$links)))
+    predlplsrhyper <- unname(predict(lrlplsrhyp, data.frame(dfhyper$links)))
+    
+    dfall$predsrrnd <- 0
+    dfall[dfall$Model=="HYPERNESTED",]$predsrrnd <- predsrrnd 
+    dfall[dfall$Model=="PERFNESTED",]$predsrrnd <- predsrrnd 
+    dfall[dfall$Model=="RND",]$predsrrnd <- predsrrnd 
+    dfall$predlplsrrnd <- 0
+    dfall[dfall$Model=="HYPERNESTED",]$predlplsrrnd <- predlplsrrnd 
+    dfall[dfall$Model=="PERFNESTED",]$predlplsrrnd <- predlplsrrnd 
+    dfall[dfall$Model=="RND",]$predlplsrrnd <- predlplsrrnd 
+    dfall$predlplsrhyper <- 0
+    dfall[dfall$Model=="HYPERNESTED",]$predlplsrhyper <- predlplsrhyper 
+    dfall[dfall$Model=="PERFNESTED",]$predlplsrhyper <- predlplsrhyper 
+    dfall[dfall$Model=="RND",]$predlplsrhyper <- predlplsrhyper 
+    
+    
+    print("Lpl RDN")
+    print(summary(lrlplsr))
+    print("Lpl hyper")
+    print(summary(lrlplsrhyp))
+    
     dfnormalized <- dfall
     dfnormalized$normspecrad <- 0
     for (i in 1:nrow(dfnormalized)){
@@ -122,6 +156,7 @@ for (netw in lnetw){
     }
     sr <- ggplot(data=dfall,aes(x=links/(na*np),y=spectrad,color=Model))+geom_point(alpha=0.5)+
           geom_point(data=dfall,aes(x=links/(na*np),y=sqrt(links)),color="blue",size=0.5)+
+      geom_point(data=dfall,aes(x=links/(na*np),y=predsrrnd),color="magenta",size=0.5)+
           geom_point(data=ndata,aes(x=ndata$Connectance,y=ndata$spect_rad),color="black",size=2.5)+
           xlab("Connectance")+ggtitle(paste("NA:",na,"NB:",np))+theme_bw()
 
@@ -131,6 +166,8 @@ for (netw in lnetw){
     
     lplsr <- ggplot(data=dfall,aes(x=links/(na*np),y=Lplspectrad,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=ndata,aes(x=ndata$Connectance,y=ndata$lpl_spect_rad),color="black",size=2.5)+
+      geom_point(data=dfall,aes(x=links/(na*np),y=predlplsrrnd),color="magenta",size=0.5)+
+      geom_point(data=dfall,aes(x=links/(na*np),y=predlplsrhyper),color="blue",size=0.5)+
             xlab("Connectance")+ggtitle(paste("NA:",na,"NB:",np))+theme_bw()
     lple <- ggplot(data=dfall,aes(x=links/(na*np),y=LplEnergy,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=ndata,aes(x=ndata$Connectance,y=ndata$lpl_energy),color="black",size=2.5)+
@@ -161,18 +198,66 @@ for (netw in lnetw){
     datanetwork <- read.csv(paste0(rdir,"MODS_",netw,".csv"))
     datanestnetwork <- datanestnetwork[datanestnetwork$model=="NETWORK",]
     datanestnetwork$connectance <- ndata$Connectance
+    datanestnetwork$spectrad <- ndata$spect_rad
     datanestnetwork$algconn <-datanetwork[datanetwork$MODEL=="NETWORK" & datanetwork$ind=="algebraic_connectivity",]$values
+    dfall$normindex <- 0
+    # dfall$rollmeanrnd <- 0
+    # rsprnd <- zoo::rollmean(dfall[dfall$Model=="RND",]$spectrad,k=5,fill = 0)
+    # rsprnd[1] <- dfall[dfall$Model=="RND",]$spectrad[1]
+    # rsprnd[2] <- dfall[dfall$Model=="RND",]$spectrad[2]
+    # rsprnd[length(rsprnd)-1] <- dfall[dfall$Model=="RND",]$spectrad[length(rsprnd)-1]
+    # rsprnd[length(rsprnd)] <- dfall[dfall$Model=="RND",]$spectrad[length(rsprnd)]
+    # dfall[dfall$Model=="HYPERNESTED",]$rollmeanrnd <- rsprnd 
+    # dfall[dfall$Model=="PERFNESTED",]$rollmeanrnd <- rsprnd 
+    # dfall[dfall$Model=="RND",]$rollmeanrnd <- rsprnd 
+    # Normalized index with min = sqrt(na*np) and max = sqrt(nlinks)
+    for (k in 1:nrow(dfall)){
+      vmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == dfall$links[k],]$spectrad
+      vmin <- dfall$predsrrnd[k]
+      dfall$normindex[k] = (dfall$spectrad[k]-vmin)/(vmax - vmin)
+    }
+    dfall$lplnormindex <- 0
+    for (k in 1:nrow(dfall)){
+      vmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == dfall$links[k],]$Lplspectrad
+      vmin <- dfall$predlplsrrnd[k]
+      dfall$lplnormindex[k] = (dfall$Lplspectrad[k]-vmin)/(vmax - vmin)
+    }
+    
+    nmin <- dfall[dfall$Model =="RND" & dfall$links == ndata$Links,]$spectrad
+    nmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == ndata$Links,]$spectrad
+    datanestnetwork$normindex <- (ndata$spect_rad - nmin) /
+                                 (nmax- nmin ) 
+    
+    nmin <- dfall[dfall$Model =="RND" & dfall$links == ndata$Links,]$Lplspectrad
+    nmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == ndata$Links,]$Lplspectrad
+    datanestnetwork$lplnormindex <- (ndata$lpl_spect_rad - nmin) / (nmax- nmin ) 
+    
     bnm <- ggplot(data=dfall,aes(x=links/(na*np),y=binmatnest,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=dfall,aes(x=ndata$Connectance,y=datanestnetwork$binmatnest.temperature),color="black",size=2.5)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
     pnodf <- ggplot(data=dfall,aes(x=links/(na*np),y=NODF,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=datanestnetwork,aes(x=connectance,y=NODF),color="black",size=2.5)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
+    pnormindex <- ggplot(data=dfall[dfall$links<0.95*na*np,],aes(x=links/(na*np),y=normindex,color=Model))+geom_point(alpha=0.5)+
+      geom_point(data=datanestnetwork,aes(x=connectance,y=normindex),color="black",size=2.5)+
+      xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
+    pnormlpl <- ggplot(data=dfall[dfall$links<0.95*na*np,],aes(x=links/(na*np),y=lplnormindex,color=Model))+geom_point(alpha=0.5)+
+      geom_point(data=datanestnetwork,aes(x=connectance,y=lplnormindex),color="black",size=2.5)+
+      xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
+    
+    # psr <- ggplot(data=dfall,aes(x=links/(na*np),y=spectrad,color=Model))+geom_point(alpha=0.5)+
+    #   geom_point(data=datanestnetwork,aes(x=connectance,y=spectrad),color="black",size=2.5)+
+    #   xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
     
     bnm <- prettyfy(bnm)
     pnodf <- prettyfy(pnodf)
-    pnested <- (bnm | pnodf)
-    png(paste0(eiplotsdir,netw,"_","NESTEDNESS_",na,"_",np,".png"),width=4*plsize*ppi,height=1.5*plsize*ppi,res=ppi)
+    pnormindex <- prettyfy(pnormindex)
+    pnormlpl <- prettyfy(pnormlpl)
+    # psr <- prettyfy(psr)
+    pup <- (bnm | pnodf)
+    pdown <- (pnormindex | pnormlpl)
+    pnested <- (pup / pdown)
+    png(paste0(eiplotsdir,netw,"_","NESTEDNESS_",na,"_",np,".png"),width=4*plsize*ppi,height=3*plsize*ppi,res=ppi)
     print(pnested)
     dev.off()
     
