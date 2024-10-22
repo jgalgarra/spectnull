@@ -24,7 +24,7 @@ prettyfy <- function(pl){
         axis.title = element_text(size = 13)))
 }
 
-filenames <- Sys.glob(paste0(datadir,"*_*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_HP*.csv"))
 lnetw <- gsub(".csv","",gsub(datadir,"",filenames))
 weightrf <- "none"
 liminfplconn <- 0.1
@@ -59,8 +59,7 @@ for (netw in lnetw){
 
     
     for (nlinks in samplelinks){  
-      #if (nlinks %% 20 == 0)
-        print(paste(nlinks,"out of",upperlinks,"connectance",nlinks/(na*np)))
+      print(paste(nlinks,"out of",upperlinks,"connectance",nlinks/(na*np)))
       
       mincidhyper <- create_hypernested_model(na,np,nlinks)
       if (na>np)
@@ -91,9 +90,7 @@ for (netw in lnetw){
                                         "Lplspectrad"=eigen(mlapl)$values[1],
                                         "AlgConnectivity"=rev(eigen(mlapl)$values)[2],
                                         "LplEnergy"=LaplEnergy(eigen(mlapl)$values,nlinks,na+np)))
-      
-      
-      
+    
       mincidrandom <- create_rnd_matrix(na,np,nlinks)
       if (na>np)
         mrandom <- sq_adjacency(mincidrandom,np,na)[[1]]
@@ -201,16 +198,6 @@ for (netw in lnetw){
     datanestnetwork$spectrad <- ndata$spect_rad
     datanestnetwork$algconn <-datanetwork[datanetwork$MODEL=="NETWORK" & datanetwork$ind=="algebraic_connectivity",]$values
     dfall$normindex <- 0
-    # dfall$rollmeanrnd <- 0
-    # rsprnd <- zoo::rollmean(dfall[dfall$Model=="RND",]$spectrad,k=5,fill = 0)
-    # rsprnd[1] <- dfall[dfall$Model=="RND",]$spectrad[1]
-    # rsprnd[2] <- dfall[dfall$Model=="RND",]$spectrad[2]
-    # rsprnd[length(rsprnd)-1] <- dfall[dfall$Model=="RND",]$spectrad[length(rsprnd)-1]
-    # rsprnd[length(rsprnd)] <- dfall[dfall$Model=="RND",]$spectrad[length(rsprnd)]
-    # dfall[dfall$Model=="HYPERNESTED",]$rollmeanrnd <- rsprnd 
-    # dfall[dfall$Model=="PERFNESTED",]$rollmeanrnd <- rsprnd 
-    # dfall[dfall$Model=="RND",]$rollmeanrnd <- rsprnd 
-    # Normalized index with min = sqrt(na*np) and max = sqrt(nlinks)
     for (k in 1:nrow(dfall)){
       vmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == dfall$links[k],]$spectrad
       vmin <- dfall$predsrrnd[k]

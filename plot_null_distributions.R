@@ -1,5 +1,4 @@
-# Functions called from main script null_models_spectral_analysis
-
+# This script contains functions to plot magnitude distributions and is called 
 
 plot_distr_null <- function(df,nvalue,nlinks=0,networkname="",title="",nestedvalue="",hypernestedvalue=""){
   lmodels <- unique(df$type)
