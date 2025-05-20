@@ -24,10 +24,11 @@ prettyfy <- function(pl){
         axis.title = element_text(size = 13)))
 }
 
-filenames <- Sys.glob(paste0(datadir,"*_HP*.csv"))
+filenames <- Sys.glob(paste0(datadir,"*_PL_002*.csv"))
 lnetw <- gsub(".csv","",gsub(datadir,"",filenames))
 weightrf <- "none"
 liminfplconn <- 0.1
+limvalidmodelsconnectance <- 0.95
 
 create_dirs(weightrf)
                                           
@@ -219,16 +220,25 @@ for (netw in lnetw){
     nmax <- dfall[dfall$Model =="HYPERNESTED" & dfall$links == ndata$Links,]$Lplspectrad
     datanestnetwork$lplnormindex <- (ndata$lpl_spect_rad - nmin) / (nmax- nmin ) 
     
+    # Linear regression of normalized index vs connectance
+    dfperf <- dfall[dfall$Model=="PERFNESTED",]
+    dfperf$connectance <- dfperf$links/(na*np)
+    dfperf <- dfperf[(dfperf$connectance>(1-limvalidmodelsconnectance))&(dfperf$connectance<limvalidmodelsconnectance),]
+    lrnormindexconn <- lm(dfperf$normindex ~ dfperf$connectance)
+    prednormindex <- unname(predict(lrnormindexconn, data.frame(dfperf$connectance)))
+    dfprednormindex <- data.frame("connectance"=dfperf$connectance,"prednormindex"=prednormindex)
+    
     bnm <- ggplot(data=dfall,aes(x=links/(na*np),y=binmatnest,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=dfall,aes(x=ndata$Connectance,y=datanestnetwork$binmatnest.temperature),color="black",size=2.5)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
     pnodf <- ggplot(data=dfall,aes(x=links/(na*np),y=NODF,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=datanestnetwork,aes(x=connectance,y=NODF),color="black",size=2.5)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
-    pnormindex <- ggplot(data=dfall[dfall$links<0.95*na*np,],aes(x=links/(na*np),y=normindex,color=Model))+geom_point(alpha=0.5)+
+    pnormindex <- ggplot(data=dfall[dfall$links<limvalidmodelsconnectance*na*np,],aes(x=links/(na*np),y=normindex,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=datanestnetwork,aes(x=connectance,y=normindex),color="black",size=2.5)+
+      geom_point(data=dfprednormindex,aes(x=connectance,y=prednormindex),color="orange",size=1)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
-    pnormlpl <- ggplot(data=dfall[dfall$links<0.95*na*np,],aes(x=links/(na*np),y=lplnormindex,color=Model))+geom_point(alpha=0.5)+
+    pnormlpl <- ggplot(data=dfall[dfall$links<limvalidmodelsconnectance*na*np,],aes(x=links/(na*np),y=lplnormindex,color=Model))+geom_point(alpha=0.5)+
       geom_point(data=datanestnetwork,aes(x=connectance,y=lplnormindex),color="black",size=2.5)+
       xlim(c(min(liminfplconn,1-as.numeric(ndata$Connectance<liminfplconn)),1))+xlab("Connectance")+ggtitle(sprintf("NA: %d NB: %d conn: %.2f",na,np,ndata$Connectance))+theme_bw()
     

@@ -26,6 +26,8 @@ for (netw in lnetw)
     
     ppi<-300
     A<-unname(result_analysis$matrix)
+    if (nrow(A)>ncol(A))
+      A <- t(A)
     A[A>0]=1
     A<-A[order(rowSums(A)),rev(order(colSums(A)))]
     
@@ -48,10 +50,11 @@ for (netw in lnetw)
     aratio <- ncol(A)/nrow(A)
     i = i + 1
   }
-  if (ncol(A)<nrow(A)) {
-    pd <- ( (mplots[[1]] | mplots[[2]] | mplots[[3]])/ (mplots[[4]] | mplots[[5]] | mplots[[6]])/ (mplots[[7]] | mplots[[8]] | ggplot() + theme_void())  )
-  } else
-    pd <- ( (mplots[[1]] | mplots[[2]] ) /( mplots[[3]]| mplots[[4]] )/( mplots[[5]] | mplots[[6]])/ (mplots[[7]] | mplots[[8]] )  )
+  # if (ncol(A)<nrow(A)) {
+  #   pd <- ( (mplots[[1]] | mplots[[2]] | mplots[[3]])/ (mplots[[4]] | mplots[[5]] | mplots[[6]])/ (mplots[[7]] | mplots[[8]] | ggplot() + theme_void())  )
+  # } else
+  #  pd <- ( (mplots[[1]] | mplots[[2]] ) /( mplots[[3]]| mplots[[4]] )/( mplots[[5]] | mplots[[6]])/ (mplots[[7]] | mplots[[8]] )  )
+  pd <- ( (mplots[[1]] | mplots[[2]] | mplots[[3]])/ (mplots[[4]] | mplots[[5]] | mplots[[6]])/ (mplots[[7]] | mplots[[8]] | ggplot() + theme_void())  )
   pd <- pd +  plot_annotation(title = netw,theme = theme(plot.title = element_text(size = 20,face="bold",color="gray20",hjust=0.5)))
   plsize=15
   nfile <- paste0(matrixplotsdir,"/",netw,"_MATRIX",".png")
